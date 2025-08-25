@@ -10,6 +10,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Configure CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactDev", builder =>
@@ -20,25 +21,27 @@ builder.Services.AddCors(options =>
     });
 });
 
-
-// Configure PostgreSQL with connection string from appsettings.json or env variable
+// Configure PostgreSQL with connection string
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 var app = builder.Build();
 
-// Enable Swagger in development and production
+// Enable Swagger
 app.UseSwagger();
 app.UseSwaggerUI();
 
+// **Enable CORS middleware**
+app.UseCors("AllowReactDev");
+
+// Use routing
+app.UseRouting();
+
+// Map controllers
+app.UseAuthorization();
+app.MapControllers();
+
 // Simple health-check/test endpoint
 app.MapGet("/", () => "Hotel API is running ✅");
-
-// Example: Quick test query to list hotels (using EF Core)
-app.MapGet("/hotels", async (AppDbContext db) =>
-    await db.HotelSales.ToListAsync());
-
-// Map attribute-based controllers
-app.MapControllers();
 
 app.Run();
