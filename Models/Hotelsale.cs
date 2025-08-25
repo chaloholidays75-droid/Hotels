@@ -10,6 +10,7 @@ namespace HotelAPI.Models
         public string CountryCode { get; set; } = string.Empty;
         public string City { get; set; } = string.Empty;
         public string HotelName { get; set; } = string.Empty;
+        public string HotelContactNumber { get; set; } = string.Empty;
      
         public string Address { get; set; } = string.Empty;
         
@@ -34,8 +35,9 @@ namespace HotelAPI.Models
         public string ConciergeName { get; set; } = string.Empty;
         public string ConciergeEmail { get; set; } = string.Empty;
         public string ConciergeContact { get; set; } = string.Empty;
+        public string SpecialRemarks { get; set; } = string.Empty;
 
-        // Credit
+        
         
 
         // Facilities (store as JSON in PostgreSQL)
