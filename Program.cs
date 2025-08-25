@@ -10,6 +10,17 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowReactDev", builder =>
+    {
+        builder.WithOrigins("http://localhost:5173") // React dev server
+               .AllowAnyHeader()
+               .AllowAnyMethod();
+    });
+});
+
+
 // Configure PostgreSQL with connection string from appsettings.json or env variable
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
