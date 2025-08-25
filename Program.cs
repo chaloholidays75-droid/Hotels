@@ -15,7 +15,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactDev", builder =>
     {
-        builder.WithOrigins("http://localhost:5173") // React dev server
+        builder.WithOrigins("https://hotels-ui-obxn.onrender.com") // React dev server
                .AllowAnyHeader()
                .AllowAnyMethod();
     });
