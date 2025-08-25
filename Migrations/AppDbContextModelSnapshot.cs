@@ -70,19 +70,11 @@ namespace HotelAPI.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("CreditCategory")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.PrimitiveCollection<List<string>>("FacilitiesAvailable")
                         .IsRequired()
                         .HasColumnType("text[]");
 
-                    b.Property<string>("HotelChain")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("HotelCode")
+                    b.Property<string>("HotelContactNumber")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -123,6 +115,10 @@ namespace HotelAPI.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("SalesPersonName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("SpecialRemarks")
                         .IsRequired()
                         .HasColumnType("text");
 

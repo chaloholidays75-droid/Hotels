@@ -22,9 +22,8 @@ namespace HotelAPI.Migrations
                     CountryCode = table.Column<string>(type: "text", nullable: false),
                     City = table.Column<string>(type: "text", nullable: false),
                     HotelName = table.Column<string>(type: "text", nullable: false),
-                    HotelCode = table.Column<string>(type: "text", nullable: false),
+                    HotelContactNumber = table.Column<string>(type: "text", nullable: false),
                     Address = table.Column<string>(type: "text", nullable: false),
-                    HotelChain = table.Column<string>(type: "text", nullable: false),
                     SalesPersonName = table.Column<string>(type: "text", nullable: false),
                     SalesPersonEmail = table.Column<string>(type: "text", nullable: false),
                     SalesPersonContact = table.Column<string>(type: "text", nullable: false),
@@ -40,7 +39,7 @@ namespace HotelAPI.Migrations
                     ConciergeName = table.Column<string>(type: "text", nullable: false),
                     ConciergeEmail = table.Column<string>(type: "text", nullable: false),
                     ConciergeContact = table.Column<string>(type: "text", nullable: false),
-                    CreditCategory = table.Column<string>(type: "text", nullable: false),
+                    SpecialRemarks = table.Column<string>(type: "text", nullable: false),
                     FacilitiesAvailable = table.Column<List<string>>(type: "text[]", nullable: false)
                 },
                 constraints: table =>
