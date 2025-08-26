@@ -11,7 +11,7 @@ namespace HotelAPI.Data
 
         public DbSet<HotelSale> HotelSales { get; set; }
 
-
+        public DbSet<HotelStaff> HotelStaffs { get; set; }
        
       
     }

@@ -1,0 +1,14 @@
+namespace HotelAPI.Models
+{
+    public class HotelStaff
+    {
+    public int Id { get; set; }
+    public int HotelSaleId { get; set; }
+    public string Role { get; set; } = string.Empty;  // e.g., "Reception", "Sales", "Concierge"
+    public string Name { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string Contact { get; set; } = string.Empty;
+
+    public HotelSale HotelSale { get; set; } = null!;
+    }
+}
