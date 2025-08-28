@@ -131,3 +131,5 @@ C:\Users\chalo\Hotel\HotelAPI\bin\Debug\net9.0\Swashbuckle.AspNetCore.Swagger.dl
 C:\Users\chalo\Hotel\HotelAPI\bin\Debug\net9.0\Swashbuckle.AspNetCore.SwaggerGen.dll
 C:\Users\chalo\Hotel\HotelAPI\bin\Debug\net9.0\Swashbuckle.AspNetCore.SwaggerUI.dll
 C:\Users\chalo\Hotel\HotelAPI\obj\Debug\net9.0\HotelAPI.sourcelink.json
+C:\Users\chalo\Hotel\HotelAPI\bin\Debug\net9.0\AutoMapper.dll
+C:\Users\chalo\Hotel\HotelAPI\bin\Debug\net9.0\AutoMapper.Extensions.Microsoft.DependencyInjection.dll
