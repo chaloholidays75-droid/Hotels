@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using HotelAPI.Data;
 using HotelAPI.Models;
 using HotelAPI.Models.DTO;
+using AutoMapper;
 
 namespace HotelAPI.Controllers
 {
@@ -11,31 +12,28 @@ namespace HotelAPI.Controllers
     public class HotelController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly IMapper _mapper;
 
-        public HotelController(AppDbContext context)
+        public HotelController(AppDbContext context, IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
         }
 
-        // ===========================
         // GET: api/hotels
-        // Get all hotels with their staff
-        // ===========================
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<HotelInfo>>> GetHotels()
+        public async Task<ActionResult<IEnumerable<HotelDto>>> GetHotels()
         {
             var hotels = await _context.HotelInfo
                                        .Include(h => h.HotelStaff)
                                        .ToListAsync();
-            return Ok(hotels);
+            var hotelDtos = _mapper.Map<List<HotelDto>>(hotels);
+            return Ok(hotelDtos);
         }
 
-        // ===========================
         // GET: api/hotels/{id}
-        // Get a single hotel with its staff
-        // ===========================
         [HttpGet("{id}")]
-        public async Task<ActionResult<HotelInfo>> GetHotel(int id)
+        public async Task<ActionResult<HotelDto>> GetHotel(int id)
         {
             var hotel = await _context.HotelInfo
                                       .Include(h => h.HotelStaff)
@@ -44,72 +42,50 @@ namespace HotelAPI.Controllers
             if (hotel == null)
                 return NotFound(new { message = "Hotel not found" });
 
-            return Ok(hotel);
+            var hotelDto = _mapper.Map<HotelDto>(hotel);
+            return Ok(hotelDto);
         }
 
-        // ===========================
         // POST: api/hotels
-        // Create a new hotel with staff
-        // ===========================
         [HttpPost]
-        public async Task<ActionResult<HotelInfo>> CreateHotel([FromBody] HotelDto dto)
+        public async Task<ActionResult<HotelDto>> CreateHotel([FromBody] HotelDto dto)
         {
-            // 1️⃣ Check for duplicate hotels (same name + city + country OR HotelEmail OR contact number)
+            // Check for duplicates (based on name, city, and address)
             var exists = await _context.HotelInfo
-                .AnyAsync(h => (h.HotelName == dto.HotelName
-                                && h.City == dto.City
-                                && h.CountryCode == dto.CountryCode)
-                              || h.HotelEmail == dto.HotelEmail
-                              || h.HotelContactNumber == dto.HotelContactNumber);
+                .AnyAsync(h => h.HotelName == dto.HotelName && h.City == dto.City && h.Address == dto.Address);
 
             if (exists)
-                return Conflict(new { message = "Hotel with same details already exists" });
+                return BadRequest(new { message = "Hotel with same details already exists" });
 
-            // 2️⃣ Map DTO to HotelInfo entity
-            var hotel = new HotelInfo
-            {
-                Country = dto.Country,
-                CountryCode = dto.CountryCode,
-                City = dto.City,
-                HotelName = dto.HotelName,
-                HotelContactNumber = dto.HotelContactNumber,
-                HotelEmail = dto.HotelEmail,
-                Address = dto.Address,
-                SpecialRemarks = dto.SpecialRemarks
-            };
+            var hotel = _mapper.Map<HotelInfo>(dto);
 
-            // 3️⃣ Add staff while avoiding duplicates by HotelEmail
-            if (dto.HotelStaff != null)
+            // Add staff for each role
+            void AddStaff(List<HotelStaffDto> staffDtos, string role)
             {
-                var HotelEmails = new HashSet<string>();
-                foreach (var s in dto.HotelStaff)
+                if (staffDtos != null)
                 {
-                    if (!HotelEmails.Contains(s.Email))
+                    foreach (var s in staffDtos)
                     {
-                        hotel.HotelStaff.Add(new HotelStaff
-                        {
-                            Role = s.Role,
-                            Name = s.Name,
-                            Email = s.Email,
-                            Contact = s.Contact,
-                            HotelInfo = hotel
-                        });
-                        HotelEmails.Add(s.Email);
+                        var staff = _mapper.Map<HotelStaff>(s);
+                        staff.Role = role;
+                        hotel.HotelStaff.Add(staff);
                     }
                 }
             }
 
-            // 4️⃣ Save hotel with staff
+            AddStaff(dto.SalesPersons, "Sales");
+            AddStaff(dto.ReceptionPersons, "Reception");
+            AddStaff(dto.AccountsPersons, "Accounts");
+            AddStaff(dto.Concierges, "Concierge");
+
             _context.HotelInfo.Add(hotel);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetHotel), new { id = hotel.Id }, hotel);
+            var hotelDto = _mapper.Map<HotelDto>(hotel);
+            return CreatedAtAction(nameof(GetHotel), new { id = hotel.Id }, hotelDto);
         }
 
-        // ===========================
         // PUT: api/hotels/{id}
-        // Update a hotel and its staff
-        // ===========================
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateHotel(int id, [FromBody] HotelDto dto)
         {
@@ -120,61 +96,45 @@ namespace HotelAPI.Controllers
             if (hotel == null)
                 return NotFound(new { message = "Hotel not found" });
 
-            // 1️⃣ Check for duplicates (ignore current hotel)
-            var duplicate = await _context.HotelInfo
-                .AnyAsync(h => h.Id != id &&
-                               ((h.HotelName == dto.HotelName
-                                 && h.City == dto.City
-                                 && h.CountryCode == dto.CountryCode)
-                                || h.HotelEmail == dto.HotelEmail
-                                || h.HotelContactNumber == dto.HotelContactNumber));
-
-            if (duplicate)
-                return Conflict(new { message = "Another hotel with same details exists" });
-
-            // 2️⃣ Update hotel info
+            // Update hotel properties
             hotel.Country = dto.Country;
             hotel.CountryCode = dto.CountryCode;
             hotel.City = dto.City;
             hotel.HotelName = dto.HotelName;
-            hotel.HotelContactNumber = dto.HotelContactNumber;
             hotel.HotelEmail = dto.HotelEmail;
+            hotel.HotelContactNumber = dto.HotelContactNumber;
             hotel.Address = dto.Address;
+            hotel.HotelChain = dto.HotelChain; // Added HotelChain
             hotel.SpecialRemarks = dto.SpecialRemarks;
 
-            // 3️⃣ Remove existing staff
+            // Remove old staff
             _context.HotelStaff.RemoveRange(hotel.HotelStaff);
             hotel.HotelStaff.Clear();
 
-            // 4️⃣ Add new staff, avoiding duplicates by HotelEmail
-            if (dto.HotelStaff != null)
+            // Add new staff
+            void AddStaff(List<HotelStaffDto> staffDtos, string role)
             {
-                var HotelEmails = new HashSet<string>();
-                foreach (var s in dto.HotelStaff)
+                if (staffDtos != null)
                 {
-                    if (!HotelEmails.Contains(s.Email))
+                    foreach (var s in staffDtos)
                     {
-                        hotel.HotelStaff.Add(new HotelStaff
-                        {
-                            Role = s.Role,
-                            Name = s.Name,
-                            Email = s.Email,
-                            Contact = s.Contact,
-                            HotelInfo = hotel
-                        });
-                        HotelEmails.Add(s.Email);
+                        var staff = _mapper.Map<HotelStaff>(s);
+                        staff.Role = role;
+                        hotel.HotelStaff.Add(staff);
                     }
                 }
             }
+
+            AddStaff(dto.SalesPersons, "Sales");
+            AddStaff(dto.ReceptionPersons, "Reception");
+            AddStaff(dto.AccountsPersons, "Accounts");
+            AddStaff(dto.Concierges, "Concierge");
 
             await _context.SaveChangesAsync();
             return NoContent();
         }
 
-        // ===========================
         // DELETE: api/hotels/{id}
-        // Delete hotel and its staff
-        // ===========================
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteHotel(int id)
         {
