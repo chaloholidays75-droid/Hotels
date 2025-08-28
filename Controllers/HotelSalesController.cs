@@ -75,6 +75,7 @@ namespace HotelAPI.Controllers
 
             AddStaff(dto.SalesPersons, "Sales");
             AddStaff(dto.ReceptionPersons, "Reception");
+            AddStaff(dto.ReservationPersons, "Reservation");
             AddStaff(dto.AccountsPersons, "Accounts");
             AddStaff(dto.Concierges, "Concierge");
 
@@ -127,6 +128,7 @@ namespace HotelAPI.Controllers
 
             AddStaff(dto.SalesPersons, "Sales");
             AddStaff(dto.ReceptionPersons, "Reception");
+            AddStaff(dto.ReservationPersons, "Reservation");
             AddStaff(dto.AccountsPersons, "Accounts");
             AddStaff(dto.Concierges, "Concierge");
 

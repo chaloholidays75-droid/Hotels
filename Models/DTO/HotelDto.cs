@@ -18,6 +18,7 @@ namespace HotelAPI.Models.DTO
         // Staff by roles
         public List<HotelStaffDto> SalesPersons { get; set; } = new();
         public List<HotelStaffDto> ReceptionPersons { get; set; } = new();
+        public List<HotelStaffDto> ReservationPersons { get; set; } = new();
         public List<HotelStaffDto> AccountsPersons { get; set; } = new();
         public List<HotelStaffDto> Concierges { get; set; } = new();
     }
