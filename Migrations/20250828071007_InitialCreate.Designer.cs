@@ -11,7 +11,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace HotelAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250828063123_InitialCreate")]
+    [Migration("20250828071007_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -52,6 +52,10 @@ namespace HotelAPI.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("HotelEmail")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("HotelName")
                         .IsRequired()
                         .HasColumnType("text");
@@ -62,7 +66,7 @@ namespace HotelAPI.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("HotelInfos");
+                    b.ToTable("HotelInfo");
                 });
 
             modelBuilder.Entity("HotelAPI.Models.HotelStaff", b =>
@@ -96,7 +100,7 @@ namespace HotelAPI.Migrations
 
                     b.HasIndex("HotelSaleId");
 
-                    b.ToTable("HotelStaffs");
+                    b.ToTable("HotelStaff");
                 });
 
             modelBuilder.Entity("HotelAPI.Models.HotelStaff", b =>

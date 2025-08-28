@@ -9,7 +9,7 @@ namespace HotelAPI.Mappings
         public MappingProfile()
         {
             CreateMap<HotelInfo, HotelDto>()
-                .ForMember(dest => dest.Staff, opt => opt.MapFrom(src => src.HotelStaff));
+                .ForMember(dest => dest.HotelStaff, opt => opt.MapFrom(src => src.HotelStaff));
 
             CreateMap<HotelStaff, HotelStaffDto>();
             

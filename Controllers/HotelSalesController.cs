@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using HotelAPI.Data;
 using HotelAPI.Models;
 using HotelAPI.Models.DTO;
+
 namespace HotelAPI.Controllers
 {
     [Route("api/hotels")]
@@ -17,20 +18,20 @@ namespace HotelAPI.Controllers
         }
 
         // ===========================
-        // GET: api/hotel
+        // GET: api/hotels
         // Get all hotels with their staff
         // ===========================
         [HttpGet]
         public async Task<ActionResult<IEnumerable<HotelInfo>>> GetHotels()
         {
             var hotels = await _context.HotelInfo
-                                       .Include(h => h.HotelStaff) // Include related staff
+                                       .Include(h => h.HotelStaff)
                                        .ToListAsync();
             return Ok(hotels);
         }
 
         // ===========================
-        // GET: api/hotel/{id}
+        // GET: api/hotels/{id}
         // Get a single hotel with its staff
         // ===========================
         [HttpGet("{id}")]
@@ -47,13 +48,24 @@ namespace HotelAPI.Controllers
         }
 
         // ===========================
-        // POST: api/hotel
+        // POST: api/hotels
         // Create a new hotel with staff
         // ===========================
         [HttpPost]
         public async Task<ActionResult<HotelInfo>> CreateHotel([FromBody] HotelDto dto)
         {
-            // Map DTO to entity
+            // 1️⃣ Check for duplicate hotels (same name + city + country OR HotelEmail OR contact number)
+            var exists = await _context.HotelInfo
+                .AnyAsync(h => (h.HotelName == dto.HotelName
+                                && h.City == dto.City
+                                && h.CountryCode == dto.CountryCode)
+                              || h.HotelEmail == dto.HotelEmail
+                              || h.HotelContactNumber == dto.HotelContactNumber);
+
+            if (exists)
+                return Conflict(new { message = "Hotel with same details already exists" });
+
+            // 2️⃣ Map DTO to HotelInfo entity
             var hotel = new HotelInfo
             {
                 Country = dto.Country,
@@ -61,25 +73,33 @@ namespace HotelAPI.Controllers
                 City = dto.City,
                 HotelName = dto.HotelName,
                 HotelContactNumber = dto.HotelContactNumber,
+                HotelEmail = dto.HotelEmail,
                 Address = dto.Address,
                 SpecialRemarks = dto.SpecialRemarks
             };
 
-            // Map staff
+            // 3️⃣ Add staff while avoiding duplicates by HotelEmail
             if (dto.HotelStaff != null)
             {
+                var HotelEmails = new HashSet<string>();
                 foreach (var s in dto.HotelStaff)
                 {
-                    hotel.HotelStaff.Add(new HotelStaff
+                    if (!HotelEmails.Contains(s.Email))
                     {
-                        Role = s.Role,
-                        Name = s.Name,
-                        Email = s.Email,
-                        Contact = s.Contact
-                    });
+                        hotel.HotelStaff.Add(new HotelStaff
+                        {
+                            Role = s.Role,
+                            Name = s.Name,
+                            Email = s.Email,
+                            Contact = s.Contact,
+                            HotelInfo = hotel
+                        });
+                        HotelEmails.Add(s.Email);
+                    }
                 }
             }
 
+            // 4️⃣ Save hotel with staff
             _context.HotelInfo.Add(hotel);
             await _context.SaveChangesAsync();
 
@@ -87,7 +107,7 @@ namespace HotelAPI.Controllers
         }
 
         // ===========================
-        // PUT: api/hotel/{id}
+        // PUT: api/hotels/{id}
         // Update a hotel and its staff
         // ===========================
         [HttpPut("{id}")]
@@ -100,30 +120,50 @@ namespace HotelAPI.Controllers
             if (hotel == null)
                 return NotFound(new { message = "Hotel not found" });
 
-            // Update hotel info
+            // 1️⃣ Check for duplicates (ignore current hotel)
+            var duplicate = await _context.HotelInfo
+                .AnyAsync(h => h.Id != id &&
+                               ((h.HotelName == dto.HotelName
+                                 && h.City == dto.City
+                                 && h.CountryCode == dto.CountryCode)
+                                || h.HotelEmail == dto.HotelEmail
+                                || h.HotelContactNumber == dto.HotelContactNumber));
+
+            if (duplicate)
+                return Conflict(new { message = "Another hotel with same details exists" });
+
+            // 2️⃣ Update hotel info
             hotel.Country = dto.Country;
             hotel.CountryCode = dto.CountryCode;
             hotel.City = dto.City;
             hotel.HotelName = dto.HotelName;
             hotel.HotelContactNumber = dto.HotelContactNumber;
+            hotel.HotelEmail = dto.HotelEmail;
             hotel.Address = dto.Address;
             hotel.SpecialRemarks = dto.SpecialRemarks;
 
-            // Remove existing staff and add new (simple approach)
+            // 3️⃣ Remove existing staff
             _context.HotelStaff.RemoveRange(hotel.HotelStaff);
             hotel.HotelStaff.Clear();
 
+            // 4️⃣ Add new staff, avoiding duplicates by HotelEmail
             if (dto.HotelStaff != null)
             {
+                var HotelEmails = new HashSet<string>();
                 foreach (var s in dto.HotelStaff)
                 {
-                    hotel.HotelStaff.Add(new HotelStaff
+                    if (!HotelEmails.Contains(s.Email))
                     {
-                        Role = s.Role,
-                        Name = s.Name,
-                        Email = s.Email,
-                        Contact = s.Contact
-                    });
+                        hotel.HotelStaff.Add(new HotelStaff
+                        {
+                            Role = s.Role,
+                            Name = s.Name,
+                            Email = s.Email,
+                            Contact = s.Contact,
+                            HotelInfo = hotel
+                        });
+                        HotelEmails.Add(s.Email);
+                    }
                 }
             }
 
@@ -132,7 +172,7 @@ namespace HotelAPI.Controllers
         }
 
         // ===========================
-        // DELETE: api/hotel/{id}
+        // DELETE: api/hotels/{id}
         // Delete hotel and its staff
         // ===========================
         [HttpDelete("{id}")]
@@ -145,13 +185,11 @@ namespace HotelAPI.Controllers
             if (hotel == null)
                 return NotFound(new { message = "Hotel not found" });
 
-            // Remove staff first (foreign key constraints)
             _context.HotelStaff.RemoveRange(hotel.HotelStaff);
             _context.HotelInfo.Remove(hotel);
 
             await _context.SaveChangesAsync();
             return NoContent();
         }
-         
     }
 }

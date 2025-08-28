@@ -12,7 +12,7 @@ namespace HotelAPI.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "HotelInfos",
+                name: "HotelInfo",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -21,17 +21,18 @@ namespace HotelAPI.Migrations
                     Country = table.Column<string>(type: "text", nullable: false),
                     City = table.Column<string>(type: "text", nullable: false),
                     HotelName = table.Column<string>(type: "text", nullable: false),
+                    HotelEmail = table.Column<string>(type: "text", nullable: false),
                     HotelContactNumber = table.Column<string>(type: "text", nullable: false),
                     Address = table.Column<string>(type: "text", nullable: false),
                     SpecialRemarks = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_HotelInfos", x => x.Id);
+                    table.PrimaryKey("PK_HotelInfo", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
-                name: "HotelStaffs",
+                name: "HotelStaff",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -44,18 +45,18 @@ namespace HotelAPI.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_HotelStaffs", x => x.Id);
+                    table.PrimaryKey("PK_HotelStaff", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_HotelStaffs_HotelInfos_HotelSaleId",
+                        name: "FK_HotelStaff_HotelInfo_HotelSaleId",
                         column: x => x.HotelSaleId,
-                        principalTable: "HotelInfos",
+                        principalTable: "HotelInfo",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_HotelStaffs_HotelSaleId",
-                table: "HotelStaffs",
+                name: "IX_HotelStaff_HotelSaleId",
+                table: "HotelStaff",
                 column: "HotelSaleId");
         }
 
@@ -63,10 +64,10 @@ namespace HotelAPI.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "HotelStaffs");
+                name: "HotelStaff");
 
             migrationBuilder.DropTable(
-                name: "HotelInfos");
+                name: "HotelInfo");
         }
     }
 }

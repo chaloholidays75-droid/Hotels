@@ -49,6 +49,10 @@ namespace HotelAPI.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("HotelEmail")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("HotelName")
                         .IsRequired()
                         .HasColumnType("text");
@@ -59,7 +63,7 @@ namespace HotelAPI.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("HotelInfos");
+                    b.ToTable("HotelInfo");
                 });
 
             modelBuilder.Entity("HotelAPI.Models.HotelStaff", b =>
@@ -93,7 +97,7 @@ namespace HotelAPI.Migrations
 
                     b.HasIndex("HotelSaleId");
 
-                    b.ToTable("HotelStaffs");
+                    b.ToTable("HotelStaff");
                 });
 
             modelBuilder.Entity("HotelAPI.Models.HotelStaff", b =>
