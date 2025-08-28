@@ -2,71 +2,153 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using HotelAPI.Data;
 using HotelAPI.Models;
-
-namespace TicketingSystem.Controllers
+using HotelAPI.Models.DTO;
+namespace HotelAPI.Controllers
 {
+    [Route("api/[controller]")]
     [ApiController]
-    [Route("api/hotelinfo")]
-    public class HotelInfosController : ControllerBase
+    public class HotelController : ControllerBase
     {
         private readonly AppDbContext _context;
 
-        public HotelInfosController(AppDbContext context)
+        public HotelController(AppDbContext context)
         {
             _context = context;
         }
 
-        // ✅ CREATE (POST)
-        [HttpPost]
-        public async Task<IActionResult> CreatehotelInfo([FromBody] HotelInfo hotelInfo)
-        {
-            _context.HotelInfos.Add(hotelInfo);
-            await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(GethotelInfoById), new { id = hotelInfo.Id }, hotelInfo);
-        }
-
-        // ✅ READ (GET all)
+        // ===========================
+        // GET: api/hotel
+        // Get all hotels with their staff
+        // ===========================
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<ActionResult<IEnumerable<HotelInfo>>> GetHotels()
         {
-            return Ok(await _context.HotelInfos.ToListAsync());
+            var hotels = await _context.HotelInfos
+                                       .Include(h => h.HotelStaff) // Include related staff
+                                       .ToListAsync();
+            return Ok(hotels);
         }
 
-        // ✅ READ (GET by Id)
+        // ===========================
+        // GET: api/hotel/{id}
+        // Get a single hotel with its staff
+        // ===========================
         [HttpGet("{id}")]
-        public async Task<IActionResult> GethotelInfoById(int id)
+        public async Task<ActionResult<HotelInfo>> GetHotel(int id)
         {
-            var sale = await _context.HotelInfos.FindAsync(id);
-            if (sale == null) return NotFound();
-            return Ok(sale);
+            var hotel = await _context.HotelInfos
+                                      .Include(h => h.HotelStaff)
+                                      .FirstOrDefaultAsync(h => h.Id == id);
+
+            if (hotel == null)
+                return NotFound(new { message = "Hotel not found" });
+
+            return Ok(hotel);
         }
 
-        // ✅ UPDATE (PUT)
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdatehotelInfo(int id, [FromBody] HotelInfo hotelInfo)
+        // ===========================
+        // POST: api/hotel
+        // Create a new hotel with staff
+        // ===========================
+        [HttpPost]
+        public async Task<ActionResult<HotelInfo>> CreateHotel([FromBody] HotelDto dto)
         {
-            if (id != hotelInfo.Id)
-                return BadRequest("Id mismatch");
+            // Map DTO to entity
+            var hotel = new HotelInfo
+            {
+                Country = dto.Country,
+                CountryCode = dto.CountryCode,
+                City = dto.City,
+                HotelName = dto.HotelName,
+                HotelContactNumber = dto.HotelContactNumber,
+                Address = dto.Address,
+                SpecialRemarks = dto.SpecialRemarks
+            };
 
-            var existingSale = await _context.HotelInfos.FindAsync(id);
-            if (existingSale == null)
-                return NotFound();
+            // Map staff
+            if (dto.Staff != null)
+            {
+                foreach (var s in dto.Staff)
+                {
+                    hotel.HotelStaff.Add(new HotelStaff
+                    {
+                        Role = s.Role,
+                        Name = s.Name,
+                        Email = s.Email,
+                        Contact = s.Contact
+                    });
+                }
+            }
 
-            _context.Entry(existingSale).CurrentValues.SetValues(hotelInfo);
+            _context.HotelInfos.Add(hotel);
             await _context.SaveChangesAsync();
 
-            return Ok(hotelInfo);
+            return CreatedAtAction(nameof(GetHotel), new { id = hotel.Id }, hotel);
         }
 
-        // ✅ DELETE
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeletehotelInfo(int id)
+        // ===========================
+        // PUT: api/hotel/{id}
+        // Update a hotel and its staff
+        // ===========================
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateHotel(int id, [FromBody] HotelDto dto)
         {
-            var sale = await _context.HotelInfos.FindAsync(id);
-            if (sale == null)
-                return NotFound();
+            var hotel = await _context.HotelInfos
+                                      .Include(h => h.HotelStaff)
+                                      .FirstOrDefaultAsync(h => h.Id == id);
 
-            _context.HotelInfos.Remove(sale);
+            if (hotel == null)
+                return NotFound(new { message = "Hotel not found" });
+
+            // Update hotel info
+            hotel.Country = dto.Country;
+            hotel.CountryCode = dto.CountryCode;
+            hotel.City = dto.City;
+            hotel.HotelName = dto.HotelName;
+            hotel.HotelContactNumber = dto.HotelContactNumber;
+            hotel.Address = dto.Address;
+            hotel.SpecialRemarks = dto.SpecialRemarks;
+
+            // Remove existing staff and add new (simple approach)
+            _context.HotelStaffs.RemoveRange(hotel.HotelStaff);
+            hotel.HotelStaff.Clear();
+
+            if (dto.Staff != null)
+            {
+                foreach (var s in dto.Staff)
+                {
+                    hotel.HotelStaff.Add(new HotelStaff
+                    {
+                        Role = s.Role,
+                        Name = s.Name,
+                        Email = s.Email,
+                        Contact = s.Contact
+                    });
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
+
+        // ===========================
+        // DELETE: api/hotel/{id}
+        // Delete hotel and its staff
+        // ===========================
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteHotel(int id)
+        {
+            var hotel = await _context.HotelInfos
+                                      .Include(h => h.HotelStaff)
+                                      .FirstOrDefaultAsync(h => h.Id == id);
+
+            if (hotel == null)
+                return NotFound(new { message = "Hotel not found" });
+
+            // Remove staff first (foreign key constraints)
+            _context.HotelStaffs.RemoveRange(hotel.HotelStaff);
+            _context.HotelInfos.Remove(hotel);
+
             await _context.SaveChangesAsync();
             return NoContent();
         }

@@ -3,6 +3,8 @@ using HotelAPI.Data; // your DbContext namespace
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddAutoMapper(typeof(Program)); // Or specify a profile class
+
 // Add services to the container
 builder.Services.AddControllers();
 

@@ -12,7 +12,15 @@ namespace HotelAPI.Data
         public DbSet<HotelInfo> HotelInfos { get; set; }
 
         public DbSet<HotelStaff> HotelStaffs { get; set; }
-       
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<HotelStaff>()
+                .HasOne(s => s.HotelInfo)
+                .WithMany(h => h.HotelStaff)
+                .HasForeignKey(s => s.HotelSaleId)
+                .OnDelete(DeleteBehavior.Cascade); // optional: delete staff when hotel is deleted
+        }
+
       
     }
 }
