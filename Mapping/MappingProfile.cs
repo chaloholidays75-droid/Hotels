@@ -10,11 +10,12 @@ namespace HotelAPI.Mappings
         public MappingProfile()
         {
             // HotelInfo -> HotelDto
-            CreateMap<HotelInfo, HotelDto>()
-                .ForMember(dest => dest.SalesPersons, opt => opt.MapFrom(src => src.HotelStaff.Where(s => s.Role == "Sales")))
-                .ForMember(dest => dest.ReceptionPersons, opt => opt.MapFrom(src => src.HotelStaff.Where(s => s.Role == "Reception")))
-                .ForMember(dest => dest.AccountsPersons, opt => opt.MapFrom(src => src.HotelStaff.Where(s => s.Role == "Accounts")))
-                .ForMember(dest => dest.Concierges, opt => opt.MapFrom(src => src.HotelStaff.Where(s => s.Role == "Concierge")));
+        CreateMap<HotelInfo, HotelDto>()
+            .ForMember(dest => dest.SalesPersons, opt => opt.MapFrom(src => src.HotelStaff.Where(s => s.Role == "Sales")))
+            .ForMember(dest => dest.ReceptionPersons, opt => opt.MapFrom(src => src.HotelStaff.Where(s => s.Role == "Reception")))
+            .ForMember(dest => dest.AccountsPersons, opt => opt.MapFrom(src => src.HotelStaff.Where(s => s.Role == "Accounts")))
+            .ForMember(dest => dest.Concierges, opt => opt.MapFrom(src => src.HotelStaff.Where(s => s.Role == "Concierge")))
+            .ForMember(dest => dest.ReservationPersons, opt => opt.MapFrom(src => src.HotelStaff.Where(s => s.Role == "Reservation")));
 
             // HotelStaff -> HotelStaffDto
             CreateMap<HotelStaff, HotelStaffDto>();
