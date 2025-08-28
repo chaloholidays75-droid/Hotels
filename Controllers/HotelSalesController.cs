@@ -5,7 +5,7 @@ using HotelAPI.Models;
 using HotelAPI.Models.DTO;
 namespace HotelAPI.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/hotels")]
     [ApiController]
     public class HotelController : ControllerBase
     {
@@ -110,7 +110,7 @@ namespace HotelAPI.Controllers
             hotel.SpecialRemarks = dto.SpecialRemarks;
 
             // Remove existing staff and add new (simple approach)
-            _context.HotelStaffs.RemoveRange(hotel.HotelStaff);
+            _context.HotelStaff.RemoveRange(hotel.HotelStaff);
             hotel.HotelStaff.Clear();
 
             if (dto.Staff != null)
@@ -146,11 +146,12 @@ namespace HotelAPI.Controllers
                 return NotFound(new { message = "Hotel not found" });
 
             // Remove staff first (foreign key constraints)
-            _context.HotelStaffs.RemoveRange(hotel.HotelStaff);
+            _context.HotelStaff.RemoveRange(hotel.HotelStaff);
             _context.HotelInfos.Remove(hotel);
 
             await _context.SaveChangesAsync();
             return NoContent();
         }
+         
     }
 }
