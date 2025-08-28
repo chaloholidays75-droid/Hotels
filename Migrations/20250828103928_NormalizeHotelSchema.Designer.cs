@@ -2,6 +2,7 @@
 using HotelAPI.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -10,9 +11,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace HotelAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250828103928_NormalizeHotelSchema")]
+    partial class NormalizeHotelSchema
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -20,6 +23,49 @@ namespace HotelAPI.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("HotelAPI.Models.City", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CountryId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CountryId");
+
+                    b.ToTable("Cities");
+                });
+
+            modelBuilder.Entity("HotelAPI.Models.Country", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Countries");
+                });
 
             modelBuilder.Entity("HotelAPI.Models.HotelInfo", b =>
                 {
@@ -36,6 +82,9 @@ namespace HotelAPI.Migrations
                     b.Property<string>("City")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<int?>("CityId")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Country")
                         .IsRequired()
@@ -67,7 +116,9 @@ namespace HotelAPI.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("HotelInfo", (string)null);
+                    b.HasIndex("CityId");
+
+                    b.ToTable("HotelInfo");
                 });
 
             modelBuilder.Entity("HotelAPI.Models.HotelStaff", b =>
@@ -101,7 +152,27 @@ namespace HotelAPI.Migrations
 
                     b.HasIndex("HotelInfoId");
 
-                    b.ToTable("HotelStaff", (string)null);
+                    b.ToTable("HotelStaff");
+                });
+
+            modelBuilder.Entity("HotelAPI.Models.City", b =>
+                {
+                    b.HasOne("HotelAPI.Models.Country", "Country")
+                        .WithMany("Cities")
+                        .HasForeignKey("CountryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Country");
+                });
+
+            modelBuilder.Entity("HotelAPI.Models.HotelInfo", b =>
+                {
+                    b.HasOne("HotelAPI.Models.City", "CityRef")
+                        .WithMany("Hotels")
+                        .HasForeignKey("CityId");
+
+                    b.Navigation("CityRef");
                 });
 
             modelBuilder.Entity("HotelAPI.Models.HotelStaff", b =>
@@ -113,6 +184,16 @@ namespace HotelAPI.Migrations
                         .IsRequired();
 
                     b.Navigation("HotelInfo");
+                });
+
+            modelBuilder.Entity("HotelAPI.Models.City", b =>
+                {
+                    b.Navigation("Hotels");
+                });
+
+            modelBuilder.Entity("HotelAPI.Models.Country", b =>
+                {
+                    b.Navigation("Cities");
                 });
 
             modelBuilder.Entity("HotelAPI.Models.HotelInfo", b =>

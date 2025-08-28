@@ -9,6 +9,8 @@ namespace HotelAPI.Data
 
         public DbSet<HotelInfo> HotelInfo { get; set; } = null!;
         public DbSet<HotelStaff> HotelStaff { get; set; } = null!;
+        public DbSet<Country> Countries { get; set; } = null!;
+        public DbSet<City> Cities { get; set; } = null!;    
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

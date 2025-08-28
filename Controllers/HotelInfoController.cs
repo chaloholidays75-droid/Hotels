@@ -21,16 +21,16 @@ namespace HotelAPI.Controllers
         }
 
         // GET: api/hotels
-        [HttpGet]
+         [HttpGet]
         public async Task<ActionResult<IEnumerable<HotelDto>>> GetHotels()
         {
             var hotels = await _context.HotelInfo
-                                       .Include(h => h.HotelStaff)
-                                       .ToListAsync();
-            var hotelDtos = _mapper.Map<List<HotelDto>>(hotels);
-            return Ok(hotelDtos);
+                .Include(h => h.HotelStaff)
+                .Include(h => h.City)
+                .Include(h => h.Country)
+                .ToListAsync();
+            return Ok(_mapper.Map<List<HotelDto>>(hotels));
         }
-
         // GET: api/hotels/{id}
         [HttpGet("{id}")]
         public async Task<ActionResult<HotelDto>> GetHotel(int id)
@@ -51,8 +51,10 @@ namespace HotelAPI.Controllers
         public async Task<ActionResult<HotelDto>> CreateHotel([FromBody] HotelDto dto)
         {
             // Check for duplicates (based on name, city, and address)
+            // var exists = await _context.HotelInfo
+            //     .AnyAsync(h => h.HotelName == dto.HotelName && h.City == dto.City && h.Address == dto.Address);
             var exists = await _context.HotelInfo
-                .AnyAsync(h => h.HotelName == dto.HotelName && h.City == dto.City && h.Address == dto.Address);
+                .AnyAsync(h => h.HotelName == dto.HotelName  && h.Address == dto.Address);
 
             if (exists)
                 return BadRequest(new { message = "Hotel with same details already exists" });
@@ -98,9 +100,7 @@ namespace HotelAPI.Controllers
                 return NotFound(new { message = "Hotel not found" });
 
             // Update hotel properties
-            hotel.Country = dto.Country;
-            hotel.CountryCode = dto.CountryCode;
-            hotel.City = dto.City;
+
             hotel.HotelName = dto.HotelName;
             hotel.HotelEmail = dto.HotelEmail;
             hotel.HotelContactNumber = dto.HotelContactNumber;
