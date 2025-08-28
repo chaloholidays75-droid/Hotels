@@ -23,7 +23,7 @@ namespace HotelAPI.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<HotelInfo>>> GetHotels()
         {
-            var hotels = await _context.HotelInfos
+            var hotels = await _context.HotelInfo
                                        .Include(h => h.HotelStaff) // Include related staff
                                        .ToListAsync();
             return Ok(hotels);
@@ -36,7 +36,7 @@ namespace HotelAPI.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<HotelInfo>> GetHotel(int id)
         {
-            var hotel = await _context.HotelInfos
+            var hotel = await _context.HotelInfo
                                       .Include(h => h.HotelStaff)
                                       .FirstOrDefaultAsync(h => h.Id == id);
 
@@ -66,9 +66,9 @@ namespace HotelAPI.Controllers
             };
 
             // Map staff
-            if (dto.Staff != null)
+            if (dto.HotelStaff != null)
             {
-                foreach (var s in dto.Staff)
+                foreach (var s in dto.HotelStaff)
                 {
                     hotel.HotelStaff.Add(new HotelStaff
                     {
@@ -80,7 +80,7 @@ namespace HotelAPI.Controllers
                 }
             }
 
-            _context.HotelInfos.Add(hotel);
+            _context.HotelInfo.Add(hotel);
             await _context.SaveChangesAsync();
 
             return CreatedAtAction(nameof(GetHotel), new { id = hotel.Id }, hotel);
@@ -93,7 +93,7 @@ namespace HotelAPI.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateHotel(int id, [FromBody] HotelDto dto)
         {
-            var hotel = await _context.HotelInfos
+            var hotel = await _context.HotelInfo
                                       .Include(h => h.HotelStaff)
                                       .FirstOrDefaultAsync(h => h.Id == id);
 
@@ -113,9 +113,9 @@ namespace HotelAPI.Controllers
             _context.HotelStaff.RemoveRange(hotel.HotelStaff);
             hotel.HotelStaff.Clear();
 
-            if (dto.Staff != null)
+            if (dto.HotelStaff != null)
             {
-                foreach (var s in dto.Staff)
+                foreach (var s in dto.HotelStaff)
                 {
                     hotel.HotelStaff.Add(new HotelStaff
                     {
@@ -138,7 +138,7 @@ namespace HotelAPI.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteHotel(int id)
         {
-            var hotel = await _context.HotelInfos
+            var hotel = await _context.HotelInfo
                                       .Include(h => h.HotelStaff)
                                       .FirstOrDefaultAsync(h => h.Id == id);
 
@@ -147,7 +147,7 @@ namespace HotelAPI.Controllers
 
             // Remove staff first (foreign key constraints)
             _context.HotelStaff.RemoveRange(hotel.HotelStaff);
-            _context.HotelInfos.Remove(hotel);
+            _context.HotelInfo.Remove(hotel);
 
             await _context.SaveChangesAsync();
             return NoContent();

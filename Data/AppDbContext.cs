@@ -9,13 +9,13 @@ namespace HotelAPI.Data
 
         // A table for tickets
 
-        public DbSet<HotelInfo> HotelInfos { get; set; }
+        public DbSet<HotelInfo> HotelInfo { get; set; }
 
         public DbSet<HotelStaff> HotelStaff { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<HotelStaff>()
-                .HasOne(s => s.HotelInfos)
+                .HasOne(s => s.HotelInfo)
                 .WithMany(h => h.HotelStaff)
                 .HasForeignKey(s => s.HotelSaleId)
                 .OnDelete(DeleteBehavior.Cascade); // optional: delete staff when hotel is deleted

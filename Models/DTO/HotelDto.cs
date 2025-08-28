@@ -16,6 +16,6 @@ namespace HotelAPI.Models.DTO
 
         // Nested list of staff for this hotel
 
-        public List<HotelStaffDto> Staff { get; set; } = new();
+        public List<HotelStaffDto> HotelStaff { get; set; } = new();
     }
 }
