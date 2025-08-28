@@ -9,6 +9,6 @@ namespace HotelAPI.Models
     public string Email { get; set; } = string.Empty;
     public string Contact { get; set; } = string.Empty;
 
-    public HotelSale HotelSale { get; set; } = null!;
+    public HotelInfo HotelInfo { get; set; } = null!;
     }
 }

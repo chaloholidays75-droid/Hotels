@@ -9,7 +9,7 @@ namespace HotelAPI.Data
 
         // A table for tickets
 
-        public DbSet<HotelSale> HotelSales { get; set; }
+        public DbSet<HotelInfo> HotelInfos { get; set; }
 
         public DbSet<HotelStaff> HotelStaffs { get; set; }
        
