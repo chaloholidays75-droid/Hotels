@@ -23,6 +23,7 @@ namespace HotelAPI.Migrations
                     HotelName = table.Column<string>(type: "text", nullable: false),
                     HotelEmail = table.Column<string>(type: "text", nullable: false),
                     HotelContactNumber = table.Column<string>(type: "text", nullable: false),
+                    HotelChain = table.Column<string>(type: "text", nullable: false),
                     Address = table.Column<string>(type: "text", nullable: false),
                     SpecialRemarks = table.Column<string>(type: "text", nullable: false)
                 },
@@ -37,7 +38,7 @@ namespace HotelAPI.Migrations
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    HotelSaleId = table.Column<int>(type: "integer", nullable: false),
+                    HotelInfoId = table.Column<int>(type: "integer", nullable: false),
                     Role = table.Column<string>(type: "text", nullable: false),
                     Name = table.Column<string>(type: "text", nullable: false),
                     Email = table.Column<string>(type: "text", nullable: false),
@@ -47,17 +48,17 @@ namespace HotelAPI.Migrations
                 {
                     table.PrimaryKey("PK_HotelStaff", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_HotelStaff_HotelInfo_HotelSaleId",
-                        column: x => x.HotelSaleId,
+                        name: "FK_HotelStaff_HotelInfo_HotelInfoId",
+                        column: x => x.HotelInfoId,
                         principalTable: "HotelInfo",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_HotelStaff_HotelSaleId",
+                name: "IX_HotelStaff_HotelInfoId",
                 table: "HotelStaff",
-                column: "HotelSaleId");
+                column: "HotelInfoId");
         }
 
         /// <inheritdoc />

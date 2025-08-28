@@ -11,7 +11,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace HotelAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250828071007_InitialCreate")]
+    [Migration("20250828084722_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -45,6 +45,10 @@ namespace HotelAPI.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("CountryCode")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("HotelChain")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -85,7 +89,7 @@ namespace HotelAPI.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int>("HotelSaleId")
+                    b.Property<int>("HotelInfoId")
                         .HasColumnType("integer");
 
                     b.Property<string>("Name")
@@ -98,7 +102,7 @@ namespace HotelAPI.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("HotelSaleId");
+                    b.HasIndex("HotelInfoId");
 
                     b.ToTable("HotelStaff");
                 });
@@ -107,7 +111,7 @@ namespace HotelAPI.Migrations
                 {
                     b.HasOne("HotelAPI.Models.HotelInfo", "HotelInfo")
                         .WithMany("HotelStaff")
-                        .HasForeignKey("HotelSaleId")
+                        .HasForeignKey("HotelInfoId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 

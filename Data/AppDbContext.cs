@@ -7,8 +7,8 @@ namespace HotelAPI.Data
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
-        public DbSet<HotelInfo> HotelInfo { get; set; }
-        public DbSet<HotelStaff> HotelStaff { get; set; }
+        public DbSet<HotelInfo> HotelInfo { get; set; } = null!;
+        public DbSet<HotelStaff> HotelStaff { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

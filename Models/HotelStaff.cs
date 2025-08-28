@@ -1,6 +1,6 @@
 namespace HotelAPI.Models
 {
-    public class HotelStaffDto
+    public class HotelStaff
     {
     public int Id { get; set; }
     public int HotelInfoId { get; set; }
