@@ -16,6 +16,7 @@ namespace HotelAPI.Controllers
         {
             _context = context;
         }
+        
 
         // GET: api/countries
         [HttpGet("countries")]
@@ -23,7 +24,7 @@ namespace HotelAPI.Controllers
         {
             var countries = await _context.Countries
                 .Include(c => c.Cities)
-                .OrderBy(c => c.Name)
+                
                 .ToListAsync();
 
             var countryDtos = countries.Select(c => new CountryDto
@@ -38,7 +39,7 @@ namespace HotelAPI.Controllers
                 }).ToList()
             }).ToList();
 
-            return Ok(countryDtos);
+            return Ok(countries);
         }
 
         // GET: api/countries/{id}
@@ -50,9 +51,9 @@ namespace HotelAPI.Controllers
                 .FirstOrDefaultAsync(c => c.Id == id);
 
             if (country == null)
-                return NotFound(new { message = "Country not found" });
+                return NotFound();
 
-            var countryDto = new CountryDto
+            var dto = new CountryDto
             {
                 Id = country.Id,
                 Name = country.Name,
@@ -60,12 +61,13 @@ namespace HotelAPI.Controllers
                 Cities = country.Cities.Select(city => new CityDto
                 {
                     Id = city.Id,
-                    Name = city.Name
+                    Name = city.Name,
+                    CountryId = city.CountryId
                 }).ToList()
             };
 
-            return Ok(countryDto);
-        }
+            return Ok(dto);
+}
 
         // POST: api/countries
         [HttpPost("countries")]
