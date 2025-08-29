@@ -32,6 +32,9 @@ namespace HotelAPI.Controllers
                 Id = c.Id,
                 Name = c.Name,
                 Code = c.Code,
+                Flag = c.Flag,
+                PhoneCode = c.PhoneCode,
+                PhoneNumberDigits = c.PhoneNumberDigits,
                 Cities = c.Cities.Select(city => new CityDto
                 {
                     Id = city.Id,

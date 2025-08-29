@@ -59,7 +59,7 @@ namespace HotelAPI.Controllers
                                      .FirstOrDefaultAsync(c => c.Id == dto.CityId && c.CountryId == dto.CountryId);
 
             if (city == null)
-                return BadRequest("City does not belong to the selected country");
+                return BadRequest(new { message = "City does not belong to the selected country" });
 
             // ✅ Prevent duplicate hotels
             var exists = await _context.HotelInfo
@@ -67,7 +67,9 @@ namespace HotelAPI.Controllers
                                                    && h.Address == dto.Address
                                                    && h.CityId == dto.CityId);
             if (exists)
-                return BadRequest("Hotel with same details already exists");
+                if (exists)
+                    return BadRequest(new { message = "Hotel with same details already exists" });
+
 
             var hotel = _mapper.Map<HotelInfo>(dto);
             hotel.City = city;
