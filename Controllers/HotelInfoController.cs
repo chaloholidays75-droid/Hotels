@@ -21,71 +21,64 @@ namespace HotelAPI.Controllers
         }
 
         // GET: api/hotels
-         [HttpGet]
+        [HttpGet]
         public async Task<ActionResult<IEnumerable<HotelDto>>> GetHotels()
         {
             var hotels = await _context.HotelInfo
-                .Include(h => h.HotelStaff)
-                .Include(h => h.City)
-                .Include(h => h.Country)
-                .ToListAsync();
+                                       .Include(h => h.HotelStaff)
+                                       .Include(h => h.City)
+                                       .Include(h => h.Country)
+                                       .ToListAsync();
+
             return Ok(_mapper.Map<List<HotelDto>>(hotels));
         }
+
         // GET: api/hotels/{id}
         [HttpGet("{id}")]
         public async Task<ActionResult<HotelDto>> GetHotel(int id)
         {
             var hotel = await _context.HotelInfo
                                       .Include(h => h.HotelStaff)
+                                      .Include(h => h.City)
+                                      .Include(h => h.Country)
                                       .FirstOrDefaultAsync(h => h.Id == id);
 
             if (hotel == null)
                 return NotFound(new { message = "Hotel not found" });
 
-            var hotelDto = _mapper.Map<HotelDto>(hotel);
-            return Ok(hotelDto);
+            return Ok(_mapper.Map<HotelDto>(hotel));
         }
 
         // POST: api/hotels
         [HttpPost]
         public async Task<ActionResult<HotelDto>> CreateHotel([FromBody] HotelDto dto)
         {
-            // Check for duplicates (based on name, city, and address)
-            // var exists = await _context.HotelInfo
-            //     .AnyAsync(h => h.HotelName == dto.HotelName && h.City == dto.City && h.Address == dto.Address);
-            var exists = await _context.HotelInfo
-                .AnyAsync(h => h.HotelName == dto.HotelName  && h.Address == dto.Address);
+            // ✅ Validate city belongs to country
+            var city = await _context.Cities
+                                     .Include(c => c.Country)
+                                     .FirstOrDefaultAsync(c => c.Id == dto.CityId && c.CountryId == dto.CountryId);
 
+            if (city == null)
+                return BadRequest("City does not belong to the selected country");
+
+            // ✅ Prevent duplicate hotels
+            var exists = await _context.HotelInfo
+                                       .AnyAsync(h => h.HotelName == dto.HotelName
+                                                   && h.Address == dto.Address
+                                                   && h.CityId == dto.CityId);
             if (exists)
-                return BadRequest(new { message = "Hotel with same details already exists" });
+                return BadRequest("Hotel with same details already exists");
 
             var hotel = _mapper.Map<HotelInfo>(dto);
+            hotel.City = city;
+            hotel.Country = city.Country;
 
-            // Add staff for each role
-            void AddStaff(List<HotelStaffDto> staffDtos, string role)
-            {
-                if (staffDtos != null)
-                {
-                    foreach (var s in staffDtos)
-                    {
-                        var staff = _mapper.Map<HotelStaff>(s);
-                        staff.Role = role;
-                        hotel.HotelStaff.Add(staff);
-                    }
-                }
-            }
-
-            AddStaff(dto.SalesPersons, "Sales");
-            AddStaff(dto.ReceptionPersons, "Reception");
-            AddStaff(dto.ReservationPersons, "Reservation");
-            AddStaff(dto.AccountsPersons, "Accounts");
-            AddStaff(dto.Concierges, "Concierge");
+            AddStaff(dto, hotel);
 
             _context.HotelInfo.Add(hotel);
             await _context.SaveChangesAsync();
 
-            var hotelDto = _mapper.Map<HotelDto>(hotel);
-            return CreatedAtAction(nameof(GetHotel), new { id = hotel.Id }, hotelDto);
+            return CreatedAtAction(nameof(GetHotels), new { id = hotel.Id }, _mapper.Map<HotelDto>(hotel));
         }
 
         // PUT: api/hotels/{id}
@@ -94,43 +87,36 @@ namespace HotelAPI.Controllers
         {
             var hotel = await _context.HotelInfo
                                       .Include(h => h.HotelStaff)
+                                      .Include(h => h.City)
+                                      .Include(h => h.Country)
                                       .FirstOrDefaultAsync(h => h.Id == id);
 
             if (hotel == null)
                 return NotFound(new { message = "Hotel not found" });
 
-            // Update hotel properties
+            // ✅ Validate city belongs to country
+            var city = await _context.Cities
+                                     .Include(c => c.Country)
+                                     .FirstOrDefaultAsync(c => c.Id == dto.CityId && c.CountryId == dto.CountryId);
 
+            if (city == null)
+                return BadRequest("City does not belong to the selected country");
+
+            // Update hotel details
             hotel.HotelName = dto.HotelName;
             hotel.HotelEmail = dto.HotelEmail;
             hotel.HotelContactNumber = dto.HotelContactNumber;
             hotel.Address = dto.Address;
-            hotel.HotelChain = dto.HotelChain; // Added HotelChain
+            hotel.HotelChain = dto.HotelChain;
             hotel.SpecialRemarks = dto.SpecialRemarks;
+            hotel.City = city;
+            hotel.Country = city.Country;
 
             // Remove old staff
             _context.HotelStaff.RemoveRange(hotel.HotelStaff);
             hotel.HotelStaff.Clear();
 
-            // Add new staff
-            void AddStaff(List<HotelStaffDto> staffDtos, string role)
-            {
-                if (staffDtos != null)
-                {
-                    foreach (var s in staffDtos)
-                    {
-                        var staff = _mapper.Map<HotelStaff>(s);
-                        staff.Role = role;
-                        hotel.HotelStaff.Add(staff);
-                    }
-                }
-            }
-
-            AddStaff(dto.SalesPersons, "Sales");
-            AddStaff(dto.ReceptionPersons, "Reception");
-            AddStaff(dto.ReservationPersons, "Reservation");
-            AddStaff(dto.AccountsPersons, "Accounts");
-            AddStaff(dto.Concierges, "Concierge");
+            AddStaff(dto, hotel);
 
             await _context.SaveChangesAsync();
             return NoContent();
@@ -149,9 +135,42 @@ namespace HotelAPI.Controllers
 
             _context.HotelStaff.RemoveRange(hotel.HotelStaff);
             _context.HotelInfo.Remove(hotel);
-
             await _context.SaveChangesAsync();
+
             return NoContent();
         }
+
+        // Helper: Add staff without breaking existing logic
+        private void AddStaff(HotelDto dto, HotelInfo hotel)
+        {
+            void MapStaff(List<HotelStaffDto>? staffDtos, string role)
+            {
+                if (staffDtos != null)
+                {
+                    foreach (var s in staffDtos)
+                    {
+                        var staff = _mapper.Map<HotelStaff>(s);
+                        staff.Role = role;
+                        hotel.HotelStaff.Add(staff);
+                    }
+                }
+            }
+
+            MapStaff(dto.SalesPersons, "Sales");
+            MapStaff(dto.ReceptionPersons, "Reception");
+            MapStaff(dto.ReservationPersons, "Reservation");
+            MapStaff(dto.AccountsPersons, "Accounts");
+            MapStaff(dto.Concierges, "Concierge");
+        }
+        [HttpGet("by-city/{cityId}")]
+        public async Task<ActionResult<IEnumerable<HotelDto>>> GetHotelsByCity(int cityId)
+        {
+            var hotels = await _context.HotelInfo
+                                       .Where(h => h.CityId == cityId)
+                                       .ToListAsync();
+
+            return Ok(_mapper.Map<List<HotelDto>>(hotels));
+        }
+
     }
 }

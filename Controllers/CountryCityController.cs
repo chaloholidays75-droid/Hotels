@@ -222,13 +222,16 @@ namespace HotelAPI.Controllers
                                                         h.CreatedAt.Year == DateTime.UtcNow.Year)
                                             .CountAsync();
 
-            return Ok(new {
+            return Ok(new
+            {
                 totalHotels,
                 activeContacts,
                 totalCountries,
                 newThisMonth
             });
         }
+
+
 
     }
 }
