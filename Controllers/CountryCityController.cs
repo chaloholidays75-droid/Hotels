@@ -210,5 +210,25 @@ namespace HotelAPI.Controllers
             await _context.SaveChangesAsync();
             return NoContent();
         }
+        // GET: api/stats
+        [HttpGet("stats")]
+        public async Task<ActionResult<object>> GetStats()
+        {
+            var totalHotels = await _context.HotelInfo.CountAsync();
+            var activeContacts = await _context.HotelStaff.CountAsync();
+            var totalCountries = await _context.Countries.CountAsync();
+            var newThisMonth = await _context.HotelInfo
+                                            .Where(h => h.CreatedAt.Month == DateTime.UtcNow.Month &&
+                                                        h.CreatedAt.Year == DateTime.UtcNow.Year)
+                                            .CountAsync();
+
+            return Ok(new {
+                totalHotels,
+                activeContacts,
+                totalCountries,
+                newThisMonth
+            });
+        }
+
     }
 }
