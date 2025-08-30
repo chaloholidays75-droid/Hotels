@@ -15,7 +15,7 @@ builder.Services.AddSwaggerGen();
 // Configure CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowReactDev", builder =>
+    options.AddPolicy("AllowReactUI", builder =>
     {
         builder.WithOrigins("https://hotels-ui-obxn.onrender.com") // React dev server
                .AllowAnyHeader()
@@ -34,7 +34,7 @@ app.UseSwagger();
 app.UseSwaggerUI();
 
 // **Enable CORS middleware**
-app.UseCors("AllowReactDev");
+app.UseCors("AllowReactUI");
 
 // Use routing
 app.UseRouting();
