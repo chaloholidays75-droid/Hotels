@@ -19,7 +19,8 @@ builder.Services.AddCors(options =>
     {
         builder.WithOrigins("https://hotels-ui-obxn.onrender.com") // React dev server
                .AllowAnyHeader()
-               .AllowAnyMethod();
+               .AllowAnyMethod()
+               .AllowCredentials();
     });
 });
 
