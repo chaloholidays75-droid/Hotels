@@ -67,7 +67,6 @@ namespace HotelAPI.Controllers
                                                    && h.Address == dto.Address
                                                    && h.CityId == dto.CityId);
             if (exists)
-                if (exists)
                     return BadRequest(new { message = "Hotel with same details already exists" });
 
 

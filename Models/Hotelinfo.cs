@@ -1,21 +1,31 @@
-using HotelAPI.Models;
+using System;
+using System.Collections.Generic;
 
-public class HotelInfo
+namespace HotelAPI.Models
 {
+    public class HotelInfo
+    {
+        public int Id { get; set; }
 
-    public int Id { get; set; }
-    public int CityId { get; set; }
-    public City City { get; set; } = null!;
-    public string HotelName { get; set; } = string.Empty;
-    public string HotelEmail { get; set; } = string.Empty;
-    public string HotelContactNumber { get; set; } = string.Empty;
-    public string HotelChain { get; set; } = string.Empty; 
-    public string Address { get; set; } = string.Empty;
-    public string SpecialRemarks { get; set; } = string.Empty;
+        // Relations
+        public int CityId { get; set; }
+        public City City { get; set; } = null!;
 
-    public int CountryId { get; set; }
-    public Country Country { get; set; } = null!;
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public int CountryId { get; set; }
+        public Country Country { get; set; } = null!;
 
-    public ICollection<HotelStaff> HotelStaff { get; set; } = new List<HotelStaff>();
+        // Hotel Details
+        public string HotelName { get; set; } = string.Empty;
+        public string? HotelEmail { get; set; } // optional
+        public string? HotelContactNumber { get; set; } // optional
+        public string HotelChain { get; set; } = string.Empty;
+        public string Address { get; set; } = string.Empty;
+        public string SpecialRemarks { get; set; } = string.Empty;
+
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        // Navigation: Contacts / Staff
+        public ICollection<HotelStaff> HotelStaff { get; set; } = new List<HotelStaff>();
+
+    }
 }
