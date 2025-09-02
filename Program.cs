@@ -1,5 +1,10 @@
 using Microsoft.EntityFrameworkCore;
-using HotelAPI.Data; // your DbContext namespace
+using HotelAPI.Data;
+using HotelAPI.Settings;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using HotelAPI.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,7 +22,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactUI", builder =>
     {
-        builder.WithOrigins("https://hotels-ui-obxn.onrender.com") // React dev server
+        builder.WithOrigins("https://hotels-ui-obxn.onrender.com", "http://localhost:5173") // React dev server
                .AllowAnyHeader()
                .AllowAnyMethod()
                .AllowCredentials();
@@ -27,6 +32,26 @@ builder.Services.AddCors(options =>
 // Configure PostgreSQL with connection string
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
+builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
+
+builder.Services.AddScoped<IAuthService, AuthService>();
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+        };
+    });
 
 var app = builder.Build();
 if (app.Environment.IsDevelopment())
