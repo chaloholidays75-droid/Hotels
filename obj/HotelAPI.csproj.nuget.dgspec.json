@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\chalo\\Hotel\\HotelAPI\\HotelAPI.csproj": {}
+    "C:\\Users\\chalo\\ChaloHolidays_registration\\Hotel\\HotelAPI\\HotelAPI.csproj": {}
   },
   "projects": {
-    "C:\\Users\\chalo\\Hotel\\HotelAPI\\HotelAPI.csproj": {
+    "C:\\Users\\chalo\\ChaloHolidays_registration\\Hotel\\HotelAPI\\HotelAPI.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\chalo\\Hotel\\HotelAPI\\HotelAPI.csproj",
+        "projectUniqueName": "C:\\Users\\chalo\\ChaloHolidays_registration\\Hotel\\HotelAPI\\HotelAPI.csproj",
         "projectName": "HotelAPI",
-        "projectPath": "C:\\Users\\chalo\\Hotel\\HotelAPI\\HotelAPI.csproj",
+        "projectPath": "C:\\Users\\chalo\\ChaloHolidays_registration\\Hotel\\HotelAPI\\HotelAPI.csproj",
         "packagesPath": "C:\\Users\\chalo\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\chalo\\Hotel\\HotelAPI\\obj\\",
+        "outputPath": "C:\\Users\\chalo\\ChaloHolidays_registration\\Hotel\\HotelAPI\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\chalo\\AppData\\Roaming\\NuGet\\NuGet.Config"
@@ -48,6 +48,18 @@
               "target": "Package",
               "version": "[12.0.1, )"
             },
+            "BCrypt.Net-Next": {
+              "target": "Package",
+              "version": "[4.0.3, )"
+            },
+            "MailKit": {
+              "target": "Package",
+              "version": "[4.13.0, )"
+            },
+            "Microsoft.AspNetCore.Authentication.JwtBearer": {
+              "target": "Package",
+              "version": "[9.0.8, )"
+            },
             "Microsoft.AspNetCore.OpenApi": {
               "target": "Package",
               "version": "[9.0.8, )"
@@ -58,6 +70,10 @@
               "target": "Package",
               "version": "[9.0.8, )"
             },
+            "MimeKit": {
+              "target": "Package",
+              "version": "[4.13.0, )"
+            },
             "Npgsql.EntityFrameworkCore.PostgreSQL": {
               "target": "Package",
               "version": "[9.0.4, )"
@@ -65,6 +81,10 @@
             "Swashbuckle.AspNetCore": {
               "target": "Package",
               "version": "[9.0.3, )"
+            },
+            "System.IdentityModel.Tokens.Jwt": {
+              "target": "Package",
+              "version": "[8.14.0, )"
             }
           },
           "imports": [

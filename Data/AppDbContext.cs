@@ -11,6 +11,9 @@ namespace HotelAPI.Data
         public DbSet<HotelStaff> HotelStaff { get; set; } = null!;
         public DbSet<Country> Countries { get; set; } = null!;
         public DbSet<City> Cities { get; set; } = null!;
+        
+        public DbSet<User> Users { get; set; }
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -40,25 +43,25 @@ namespace HotelAPI.Data
                 entity.Property(e => e.CountryId).HasColumnName("CountryId");
             });
 
-                // Map table name
-                modelBuilder.Entity<City>().ToTable("Cities");
+            // Map table name
+            modelBuilder.Entity<City>().ToTable("Cities");
 
-                // Configure primary key
-                modelBuilder.Entity<City>().HasKey(c => c.Id);
+            // Configure primary key
+            modelBuilder.Entity<City>().HasKey(c => c.Id);
 
-                // Configure relationship: City -> Country
-                modelBuilder.Entity<City>()
-                    .HasOne(c => c.Country)
-                    .WithMany(country => country.Cities)
-                    .HasForeignKey(c => c.CountryId)
-                    .OnDelete(DeleteBehavior.Cascade);
+            // Configure relationship: City -> Country
+            modelBuilder.Entity<City>()
+                .HasOne(c => c.Country)
+                .WithMany(country => country.Cities)
+                .HasForeignKey(c => c.CountryId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-                // Optional: Configure Hotels navigation
-                modelBuilder.Entity<City>()
-                    .HasMany(c => c.Hotels)
-                    .WithOne(h => h.City)
-                    .HasForeignKey(h => h.CityId)
-                    .OnDelete(DeleteBehavior.Cascade);
+            // Optional: Configure Hotels navigation
+            modelBuilder.Entity<City>()
+                .HasMany(c => c.Hotels)
+                .WithOne(h => h.City)
+                .HasForeignKey(h => h.CityId)
+                .OnDelete(DeleteBehavior.Cascade);
 
 
         }
