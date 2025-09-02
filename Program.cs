@@ -61,12 +61,12 @@ if (app.Environment.IsDevelopment())
 // Enable Swagger
 app.UseSwagger();
 app.UseSwaggerUI();
-
+// Use routing
+app.UseRouting();
 // **Enable CORS middleware**
 app.UseCors("AllowReactUI");
 
-// Use routing
-app.UseRouting();
+
 app.UseAuthentication();
 // Map controllers
 app.UseAuthorization();
