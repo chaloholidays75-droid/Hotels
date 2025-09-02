@@ -11,6 +11,7 @@ using HotelAPI.Models.DTO;
 using HotelAPI.Data;
 using HotelAPI.Models;
 using HotelAPI.Settings;
+using Microsoft.EntityFrameworkCore;
 namespace HotelAPI.Services
 {
 
@@ -54,7 +55,18 @@ namespace HotelAPI.Services
 
         public async Task<AuthResponse> LoginAsync(LoginRequest request)
         {
-            var user = _context.Users.FirstOrDefault(u => u.Email == request.Email);
+            var user =await _context.Users
+            .Where(u => u.Email == request.Email)
+            .Select(u => new User 
+            {
+                Id = u.Id,
+                Email = u.Email,
+                PasswordHash = u.PasswordHash,
+                FirstName = u.FirstName,
+                LastName = u.LastName,
+                Role = u.Role
+            })
+            .SingleOrDefaultAsync();
             if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
                 throw new Exception("Invalid credentials");
 
@@ -67,7 +79,7 @@ namespace HotelAPI.Services
 
         public async Task SendForgotPasswordEmailAsync(ForgotPasswordRequest request)
         {
-            var user = _context.Users.FirstOrDefault(u => u.Email == request.Email);
+            var user = await _context.Users.SingleOrDefaultAsync(u => u.Email == request.Email);
             if (user == null) return;  // Silent fail for security
 
             var token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
@@ -81,7 +93,7 @@ namespace HotelAPI.Services
 
         public async Task ResetPasswordAsync(ResetPasswordRequest request)
         {
-            var user = _context.Users.FirstOrDefault(u => u.ResetPasswordToken == request.Token && u.ResetPasswordExpiry > DateTime.UtcNow);
+            var user = await _context.Users.SingleOrDefaultAsync(u => u.ResetPasswordToken == request.Token && u.ResetPasswordExpiry > DateTime.UtcNow);
             if (user == null) throw new Exception("Invalid or expired token");
 
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
@@ -94,7 +106,7 @@ namespace HotelAPI.Services
 
         public async Task<AuthResponse> RefreshTokenAsync(RefreshTokenRequest request)
         {
-            var refreshToken = _context.RefreshTokens.FirstOrDefault(rt => rt.Token == request.RefreshToken && !rt.IsRevoked && rt.ExpiryDate > DateTime.UtcNow);
+            var refreshToken = await _context.RefreshTokens.SingleOrDefaultAsync(rt => rt.Token == request.RefreshToken && !rt.IsRevoked && rt.ExpiryDate > DateTime.UtcNow);
             if (refreshToken == null) throw new Exception("Invalid refresh token");
 
             var user = _context.Users.Find(refreshToken.UserId);

@@ -67,7 +67,7 @@ app.UseCors("AllowReactUI");
 
 // Use routing
 app.UseRouting();
-
+app.UseAuthentication();
 // Map controllers
 app.UseAuthorization();
 app.MapControllers();

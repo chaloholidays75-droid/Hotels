@@ -2,31 +2,42 @@ using MailKit.Net.Smtp;
 using MailKit.Security;
 using Microsoft.Extensions.Configuration;
 using MimeKit;
+using  EmailSettings = HotelAPI.Settings.EmailSettings;
 
-namespace YourApp.Services
+namespace HotelAPI.Services
 {
-    public class EmailService
+    public class EmailService 
     {
         private readonly IConfiguration _config;
+        private readonly EmailSettings _emailSettings;
 
-        public EmailService(IConfiguration config)
+        public EmailService(IConfiguration config, EmailSettings emailSettings)
         {
+            _emailSettings = emailSettings;
             _config = config;
         }
 
         public async Task SendEmailAsync(string toEmail, string subject, string body)
         {
-            var email = new MimeMessage();
-            email.From.Add(new MailboxAddress(_config["EmailSettings:SenderName"], _config["EmailSettings:SenderEmail"]));
-            email.To.Add(new MailboxAddress("", toEmail));
-            email.Subject = subject;
-            email.Body = new TextPart("html") { Text = body };
+            try
+            {
+                var message = new MimeMessage();
+                message.From.Add(new MailboxAddress(_emailSettings.SenderName, _emailSettings.SenderEmail));
+                message.To.Add(new MailboxAddress("", toEmail));
+                message.Subject = subject;
+                message.Body = new TextPart("plain") { Text = body };
 
-            using var smtp = new SmtpClient();
-            await smtp.ConnectAsync(_config["EmailSettings:SmtpServer"], int.Parse(_config["EmailSettings:SmtpPort"]), SecureSocketOptions.StartTls);
-            await smtp.AuthenticateAsync(_config["EmailSettings:SenderEmail"], _config["EmailSettings:Password"]);
-            await smtp.SendAsync(email);
-            await smtp.DisconnectAsync(true);
+                using var client = new SmtpClient();
+                await client.ConnectAsync(_emailSettings.SmtpServer, _emailSettings.SmtpPort, MailKit.Security.SecureSocketOptions.StartTls);
+                await client.AuthenticateAsync(_emailSettings.SenderEmail, _emailSettings.Password);
+                await client.SendAsync(message);
+                await client.DisconnectAsync(true);
+            }
+            catch (Exception ex)
+            {
+                // Log the error but do not throw
+                Console.WriteLine($"⚠️ Failed to send email to {toEmail}: {ex.Message}");
+            }
         }
     }
 }
