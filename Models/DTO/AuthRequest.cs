@@ -43,6 +43,6 @@ namespace HotelAPI.Models.DTO
     {
         public string? AccessToken { get; set; }
         public string? RefreshToken { get; set; }
-        public UserDto User { get; set; }  // UserDto with Id, Email, FirstName, LastName, Role
+        public UserDto? User { get; set; }  // UserDto with Id, Email, FirstName, LastName, Role
     }
 }

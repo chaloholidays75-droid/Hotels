@@ -3994,19 +3994,19 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\chalo\\.nuget\\packages\\": {}
+    "C:\\Users\\Chaloholiday\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\chalo\\ChaloHolidays_registration\\Hotel\\HotelAPI\\HotelAPI.csproj",
+      "projectUniqueName": "C:\\Users\\Chaloholiday\\Desktop\\ChaloHolidays_registration\\Hotel\\HotelAPI\\HotelAPI.csproj",
       "projectName": "HotelAPI",
-      "projectPath": "C:\\Users\\chalo\\ChaloHolidays_registration\\Hotel\\HotelAPI\\HotelAPI.csproj",
-      "packagesPath": "C:\\Users\\chalo\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\chalo\\ChaloHolidays_registration\\Hotel\\HotelAPI\\obj\\",
+      "projectPath": "C:\\Users\\Chaloholiday\\Desktop\\ChaloHolidays_registration\\Hotel\\HotelAPI\\HotelAPI.csproj",
+      "packagesPath": "C:\\Users\\Chaloholiday\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\Chaloholiday\\Desktop\\ChaloHolidays_registration\\Hotel\\HotelAPI\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\chalo\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        "C:\\Users\\Chaloholiday\\AppData\\Roaming\\NuGet\\NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net9.0"
