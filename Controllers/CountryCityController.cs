@@ -42,7 +42,7 @@ namespace HotelAPI.Controllers
                 }).ToList()
             }).ToList();
 
-            return Ok(countries);
+            return Ok(countryDtos);
         }
 
         // GET: api/countries/{id}
