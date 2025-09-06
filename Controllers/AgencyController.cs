@@ -9,7 +9,6 @@ using HotelAPI.Data;
 using System.Net.Mail;
 using System.Net;
 using HotelAPI.Models.DTO;
-using HotelAPI.Services;
 
 namespace AgencyManagementSystem.Controllers
 {
@@ -18,12 +17,11 @@ namespace AgencyManagementSystem.Controllers
     public class AgencyController : ControllerBase
     {
         private readonly AppDbContext _context;
-        private readonly EmailService _emailService;
 
-        public AgencyController(AppDbContext context, EmailService emailService)
+        public AgencyController(AppDbContext context)
         {
             _context = context;
-            _emailService = emailService ;
+
         }
 
         // GET: api/agency
@@ -313,7 +311,7 @@ private async Task SendWelcomeEmailAsync(string email, string AgencyName)
     {
         var fromAddress = new MailAddress("chaloholidays75@gmail.com", "Chalo Holidays");
         var toAddress = new MailAddress(email, AgencyName);
-        var fromPassword ="nmfj cwhv gyim ctpz"; // safer storage
+        var fromPassword = "nmfj cwhv gyim ctpz"; // hard-coded app password
         const string subject = "Welcome to Chalo Holidays!";
         string body = $@"
                 <html>
@@ -335,7 +333,7 @@ private async Task SendWelcomeEmailAsync(string email, string AgencyName)
         using var message = new MailMessage(fromAddress, toAddress)
         {
             Subject = subject,
-            Body = body
+            Body = body,
             IsBodyHtml = true
         };
 
