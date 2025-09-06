@@ -9,6 +9,7 @@ using HotelAPI.Data;
 using System.Net.Mail;
 using System.Net;
 using HotelAPI.Models.DTO;
+using HotelAPI.Services;
 
 namespace AgencyManagementSystem.Controllers
 {
@@ -17,10 +18,12 @@ namespace AgencyManagementSystem.Controllers
     public class AgencyController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly EmailService _emailService;
 
-        public AgencyController(AppDbContext context)
+        public AgencyController(AppDbContext context, EmailService emailService)
         {
             _context = context;
+            _emailService = emailService ;
         }
 
         // GET: api/agency
@@ -66,68 +69,77 @@ namespace AgencyManagementSystem.Controllers
         }
 
         // POST: api/agency
-        [HttpPost]
-        public async Task<ActionResult<AgencyRegistrationResponseDto>> CreateAgency([FromBody] AgencyRegistrationRequest dto)
-        {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+[HttpPost]
+public async Task<ActionResult<AgencyRegistrationResponseDto>> CreateAgency([FromBody] AgencyRegistrationRequest dto)
+{
+    if (!ModelState.IsValid)
+        return BadRequest(ModelState);
 
-            var agency = new Agency
-            {
-                AgencyName = dto.AgencyName,
-                CountryId = dto.CountryId.Value,
-                CityId = dto.CityId.Value,
-                PostCode = dto.PostCode,
-                Address = dto.Address,
-                Website = dto.Website,
-                PhoneNo = dto.PhoneNo,
-                EmailId = dto.EmailId,
-                BusinessCurrency = dto.BusinessCurrency,
-                Title = dto.Title,
-                FirstName = dto.FirstName,
-                LastName = dto.LastName,
-                UserEmailId = dto.UserEmailId,
-                Designation = dto.Designation,
-                MobileNo = dto.MobileNo,
-                UserName = dto.UserName,
-                Password = HashPassword(dto.Password),
-                AcceptTerms = dto.AcceptTerms,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
-                IsActive = true
-            };
+    // Check if username or email already exists
+    if (await _context.Agencies.AnyAsync(a => a.UserName == dto.UserName && a.IsActive))
+        return Conflict(new { message = "Username already exists" });
 
-            _context.Agencies.Add(agency);
-            await _context.SaveChangesAsync();
+    if (await _context.Agencies.AnyAsync(a => a.UserEmailId == dto.UserEmailId && a.IsActive))
+        return Conflict(new { message = "Email already exists" });
 
-            // Map to response DTO
-            var responseDto = new AgencyRegistrationResponseDto
-            {
-                Id = agency.Id,
-                AgencyName = agency.AgencyName,
-                CountryId = agency.CountryId,
-                CityId = agency.CityId,
-                PostCode = agency.PostCode,
-                Address = agency.Address,
-                Website = agency.Website,
-                PhoneNo = agency.PhoneNo,
-                EmailId = agency.EmailId,
-                BusinessCurrency = agency.BusinessCurrency,
-                Title = agency.Title,
-                FirstName = agency.FirstName,
-                LastName = agency.LastName,
-                UserEmailId = agency.UserEmailId,
-                Designation = agency.Designation,
-                MobileNo = agency.MobileNo,
-                UserName = agency.UserName,
-                AcceptTerms = agency.AcceptTerms,
-                CreatedAt = agency.CreatedAt,
-                UpdatedAt = agency.UpdatedAt,
-                IsActive = agency.IsActive
-            };
+    var agency = new Agency
+    {
+        AgencyName = dto.AgencyName,
+        CountryId = dto.CountryId.Value,
+        CityId = dto.CityId.Value,
+        PostCode = dto.PostCode,
+        Address = dto.Address,
+        Website = dto.Website,
+        PhoneNo = dto.PhoneNo,
+        EmailId = dto.EmailId,
+        BusinessCurrency = dto.BusinessCurrency,
+        Title = dto.Title,
+        FirstName = dto.FirstName,
+        LastName = dto.LastName,
+        UserEmailId = dto.UserEmailId,
+        Designation = dto.Designation,
+        MobileNo = dto.MobileNo,
+        UserName = dto.UserName,
+        Password = HashPassword(dto.Password), // Always hash
+        AcceptTerms = dto.AcceptTerms,
+        CreatedAt = DateTime.UtcNow,
+        UpdatedAt = DateTime.UtcNow,
+        IsActive = true
+    };
 
-            return CreatedAtAction(nameof(GetAgency), new { id = agency.Id }, responseDto);
-        }
+    _context.Agencies.Add(agency);
+    await _context.SaveChangesAsync();
+
+    // Fire-and-forget async email sending
+    _ = SendWelcomeEmailAsync(agency.EmailId, agency.AgencyName);
+
+    var responseDto = new AgencyRegistrationResponseDto
+    {
+        Id = agency.Id,
+        AgencyName = agency.AgencyName,
+        CountryId = agency.CountryId,
+        CityId = agency.CityId,
+        PostCode = agency.PostCode,
+        Address = agency.Address,
+        Website = agency.Website,
+        PhoneNo = agency.PhoneNo,
+        EmailId = agency.EmailId,
+        BusinessCurrency = agency.BusinessCurrency,
+        Title = agency.Title,
+        FirstName = agency.FirstName,
+        LastName = agency.LastName,
+        UserEmailId = agency.UserEmailId,
+        Designation = agency.Designation,
+        MobileNo = agency.MobileNo,
+        UserName = agency.UserName,
+        AcceptTerms = agency.AcceptTerms,
+        CreatedAt = agency.CreatedAt,
+        UpdatedAt = agency.UpdatedAt,
+        IsActive = agency.IsActive
+    };
+
+    return CreatedAtAction(nameof(GetAgency), new { id = agency.Id }, responseDto);
+}
 
 
         // PUT: api/agency/5
@@ -295,42 +307,40 @@ public async Task<IActionResult> UpdateAgency(int id, [FromBody] Agency agencyUp
             return password; // This is just a placeholder - NEVER store passwords in plain text
         }
 
-private void SendWelcomeEmail(string email, string firstName)
+private async Task SendWelcomeEmailAsync(string email, string AgencyName)
 {
     try
     {
         var fromAddress = new MailAddress("chaloholidays75@gmail.com", "Chalo Holidays");
-        var toAddress = new MailAddress(email, firstName);
-        const string fromPassword = "nmfj cwhv gyim ctpz"; // Use secure storage
+        var toAddress = new MailAddress(email, AgencyName);
+        var fromPassword ="nmfj cwhv gyim ctpz"; // safer storage
         const string subject = "Welcome to Chalo Holidays!";
-        string body = $"Hello {firstName},\n\n" +
+        string body = $"Hello {AgencyName},\n\n" +
                       "Welcome to Chalo Holidays! We are excited to have you onboard.\n\n" +
                       "Best Regards,\nChalo Holidays Team";
 
-        using (var smtp = new SmtpClient
+        using var smtp = new SmtpClient("smtp.gmail.com", 587)
         {
-            Host = "smtp.your-email-provider.com", // e.g., smtp.gmail.com
-            Port = 587,
             EnableSsl = true,
             DeliveryMethod = SmtpDeliveryMethod.Network,
             UseDefaultCredentials = false,
             Credentials = new NetworkCredential(fromAddress.Address, fromPassword)
-        })
-        using (var message = new MailMessage(fromAddress, toAddress)
+        };
+
+        using var message = new MailMessage(fromAddress, toAddress)
         {
             Subject = subject,
             Body = body
-        })
-        {
-            smtp.Send(message);
-        }
+        };
+
+        await smtp.SendMailAsync(message);
     }
     catch (Exception ex)
     {
         Console.WriteLine("Failed to send welcome email: " + ex.Message);
-        // We don’t block registration if email fails
     }
 }
+
 
 
     }
