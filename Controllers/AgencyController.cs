@@ -315,9 +315,14 @@ private async Task SendWelcomeEmailAsync(string email, string AgencyName)
         var toAddress = new MailAddress(email, AgencyName);
         var fromPassword ="nmfj cwhv gyim ctpz"; // safer storage
         const string subject = "Welcome to Chalo Holidays!";
-        string body = $"Hello {AgencyName},\n\n" +
-                      "Welcome to Chalo Holidays! We are excited to have you onboard.\n\n" +
-                      "Best Regards,\nChalo Holidays Team";
+        string body = $@"
+                <html>
+                <body>
+                <h2>Hello {AgencyName},</h2>
+                <p>Welcome to <strong>Chalo Holidays!</strong>! We are thrilled to have you onboard.</p>
+                <p>Best Regards,<br/>Chalo Holidays Team</p>
+                </body>
+                </html>";
 
         using var smtp = new SmtpClient("smtp.gmail.com", 587)
         {
@@ -331,6 +336,7 @@ private async Task SendWelcomeEmailAsync(string email, string AgencyName)
         {
             Subject = subject,
             Body = body
+            IsBodyHtml = true
         };
 
         await smtp.SendMailAsync(message);
