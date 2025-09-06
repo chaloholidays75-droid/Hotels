@@ -31,6 +31,8 @@ namespace AgencyManagementSystem.Controllers
             {
                 var agencies = await _context.Agencies
                     .Where(a => a.IsActive)
+                    .Include(a => a.Country)
+                    .Include(a => a.City)
                     .OrderByDescending(a => a.CreatedAt)
                     .ToListAsync();
 
