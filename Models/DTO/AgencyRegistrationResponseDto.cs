@@ -1,7 +1,8 @@
 namespace HotelAPI.Models.DTO
 {
-    public class AgencyRegistrationRequest
+    public class AgencyRegistrationResponseDto
     {
+        public int Id { get; set; }
         public string? AgencyName { get; set; }
         public int? CountryId { get; set; }
         public int? CityId { get; set; }
@@ -18,7 +19,9 @@ namespace HotelAPI.Models.DTO
         public string? Designation { get; set; }
         public string? MobileNo { get; set; }
         public string? UserName { get; set; }
-        public string? Password { get; set; }
         public bool AcceptTerms { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
+        public bool IsActive { get; set; }
     }
 }

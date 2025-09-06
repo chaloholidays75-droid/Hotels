@@ -8,6 +8,7 @@ using HotelAPI.Models;
 using HotelAPI.Data;
 using System.Net.Mail;
 using System.Net;
+using HotelAPI.Models.DTO;
 
 namespace AgencyManagementSystem.Controllers
 {
@@ -63,159 +64,135 @@ namespace AgencyManagementSystem.Controllers
         }
 
         // POST: api/agency
-[HttpPost]
-public async Task<ActionResult<Agency>> CreateAgency([FromBody] Agency agency)
+        [HttpPost]
+        public async Task<ActionResult<AgencyRegistrationResponseDto>> CreateAgency([FromBody] AgencyRegistrationRequest dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var agency = new Agency
+            {
+                AgencyName = dto.AgencyName,
+                CountryId = dto.CountryId.Value,
+                CityId = dto.CityId.Value,
+                PostCode = dto.PostCode,
+                Address = dto.Address,
+                Website = dto.Website,
+                PhoneNo = dto.PhoneNo,
+                EmailId = dto.EmailId,
+                BusinessCurrency = dto.BusinessCurrency,
+                Title = dto.Title,
+                FirstName = dto.FirstName,
+                LastName = dto.LastName,
+                UserEmailId = dto.UserEmailId,
+                Designation = dto.Designation,
+                MobileNo = dto.MobileNo,
+                UserName = dto.UserName,
+                Password = HashPassword(dto.Password),
+                AcceptTerms = dto.AcceptTerms,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                IsActive = true
+            };
+
+            _context.Agencies.Add(agency);
+            await _context.SaveChangesAsync();
+
+            // Map to response DTO
+            var responseDto = new AgencyRegistrationResponseDto
+            {
+                Id = agency.Id,
+                AgencyName = agency.AgencyName,
+                CountryId = agency.CountryId,
+                CityId = agency.CityId,
+                PostCode = agency.PostCode,
+                Address = agency.Address,
+                Website = agency.Website,
+                PhoneNo = agency.PhoneNo,
+                EmailId = agency.EmailId,
+                BusinessCurrency = agency.BusinessCurrency,
+                Title = agency.Title,
+                FirstName = agency.FirstName,
+                LastName = agency.LastName,
+                UserEmailId = agency.UserEmailId,
+                Designation = agency.Designation,
+                MobileNo = agency.MobileNo,
+                UserName = agency.UserName,
+                AcceptTerms = agency.AcceptTerms,
+                CreatedAt = agency.CreatedAt,
+                UpdatedAt = agency.UpdatedAt,
+                IsActive = agency.IsActive
+            };
+
+            return CreatedAtAction(nameof(GetAgency), new { id = agency.Id }, responseDto);
+        }
+
+
+        // PUT: api/agency/5
+[HttpPut("{id}")]
+public async Task<IActionResult> UpdateAgency(int id, [FromBody] Agency agencyUpdate)
 {
     try
     {
+        if (id != agencyUpdate.Id)
+            return BadRequest(new { message = "ID mismatch" });
+
+        var existingAgency = await _context.Agencies.FindAsync(id);
+        if (existingAgency == null || !existingAgency.IsActive)
+            return NotFound(new { message = "Agency not found" });
+
         // Validate model
         if (!ModelState.IsValid)
         {
-            return BadRequest(new { 
-                message = "Invalid agency data", 
-                errors = ModelState.Values
-                    .SelectMany(v => v.Errors)
-                    .Select(e => e.ErrorMessage)
+            return BadRequest(new
+            {
+                message = "Invalid agency data",
+                errors = ModelState.Values.SelectMany(v => v.Errors)
+                                          .Select(e => e.ErrorMessage)
             });
         }
 
-        // Check if username already exists
-        if (await _context.Agencies.AnyAsync(a => a.UserName == agency.UserName && a.IsActive))
-        {
+        // Check for username conflict
+        if (await _context.Agencies.AnyAsync(a => a.Id != id && a.UserName == agencyUpdate.UserName && a.IsActive))
             return Conflict(new { message = "Username already exists" });
-        }
 
-        // Check if email already exists
-        if (await _context.Agencies.AnyAsync(a => a.UserEmailId == agency.UserEmailId && a.IsActive))
-        {
+        // Check for email conflict
+        if (await _context.Agencies.AnyAsync(a => a.Id != id && a.UserEmailId == agencyUpdate.UserEmailId && a.IsActive))
             return Conflict(new { message = "Email already exists" });
+
+        // Update fields safely
+        existingAgency.AgencyName = agencyUpdate.AgencyName;
+        existingAgency.CountryId = agencyUpdate.CountryId;  // only foreign key
+        existingAgency.CityId = agencyUpdate.CityId;        // only foreign key
+        existingAgency.PostCode = agencyUpdate.PostCode;
+        existingAgency.Address = agencyUpdate.Address;
+        existingAgency.Website = agencyUpdate.Website;
+        existingAgency.PhoneNo = agencyUpdate.PhoneNo;
+        existingAgency.EmailId = agencyUpdate.EmailId;
+        existingAgency.BusinessCurrency = agencyUpdate.BusinessCurrency;
+        existingAgency.Title = agencyUpdate.Title;
+        existingAgency.FirstName = agencyUpdate.FirstName;
+        existingAgency.LastName = agencyUpdate.LastName;
+        existingAgency.UserEmailId = agencyUpdate.UserEmailId;
+        existingAgency.Designation = agencyUpdate.Designation;
+        existingAgency.MobileNo = agencyUpdate.MobileNo;
+        existingAgency.UserName = agencyUpdate.UserName;
+        existingAgency.UpdatedAt = DateTime.UtcNow;
+
+        // Only update password if provided
+        if (!string.IsNullOrEmpty(agencyUpdate.Password))
+        {
+            existingAgency.Password = HashPassword(agencyUpdate.Password); // Always hash
         }
 
-        // Set timestamps
-        agency.CreatedAt = DateTime.UtcNow;
-        agency.UpdatedAt = DateTime.UtcNow;
-        agency.IsActive = true;
-
-        // Hash password (in a real application, use proper password hashing)
-        // agency.Password = HashPassword(agency.Password);
-        // agency.ConfirmPassword = null; // Clear confirm password after validation
-
-        _context.Agencies.Add(agency);
         await _context.SaveChangesAsync();
-
-        // Send Welcome Email asynchronously (does not block API)
-        _ = Task.Run(() => SendWelcomeEmail(agency.UserEmailId, agency.FirstName));
-
-        // Return created agency without password
-        agency.Password = null;
-        agency.ConfirmPassword = null;
-
-        return CreatedAtAction(nameof(GetAgency), new { id = agency.Id }, agency);
-    }
-    catch (DbUpdateException ex)
-    {
-        return StatusCode(500, new { message = "An error occurred while creating the agency", error = ex.InnerException?.Message ?? ex.Message });
+        return NoContent();
     }
     catch (Exception ex)
     {
-        return StatusCode(500, new { message = "An unexpected error occurred", error = ex.Message });
+        return StatusCode(500, new { message = "An error occurred while updating the agency", error = ex.Message });
     }
 }
-
-        // PUT: api/agency/5
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateAgency(int id, [FromBody] Agency agencyUpdate)
-        {
-            try
-            {
-                if (id != agencyUpdate.Id)
-                {
-                    return BadRequest(new { message = "ID mismatch" });
-                }
-
-                var existingAgency = await _context.Agencies.FindAsync(id);
-                if (existingAgency == null || !existingAgency.IsActive)
-                {
-                    return NotFound(new { message = "Agency not found" });
-                }
-
-                // Validate model
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest(new
-                    {
-                        message = "Invalid agency data",
-                        errors = ModelState.Values
-                            .SelectMany(v => v.Errors)
-                            .Select(e => e.ErrorMessage)
-                    });
-                }
-
-                // Check if username already exists (excluding current agency)
-                if (await _context.Agencies.AnyAsync(a => a.Id != id && a.UserName == agencyUpdate.UserName && a.IsActive))
-                {
-                    return Conflict(new { message = "Username already exists" });
-                }
-
-                // Check if email already exists (excluding current agency)
-                if (await _context.Agencies.AnyAsync(a => a.Id != id && a.UserEmailId == agencyUpdate.UserEmailId && a.IsActive))
-                {
-                    return Conflict(new { message = "Email already exists" });
-                }
-
-                // Update properties
-                existingAgency.AgencyName = agencyUpdate.AgencyName;
-                existingAgency.Country = agencyUpdate.Country;
-                existingAgency.City = agencyUpdate.City;
-                existingAgency.PostCode = agencyUpdate.PostCode;
-                existingAgency.Address = agencyUpdate.Address;
-                existingAgency.Website = agencyUpdate.Website;
-                existingAgency.PhoneNo = agencyUpdate.PhoneNo;
-                existingAgency.EmailId = agencyUpdate.EmailId;
-                existingAgency.BusinessCurrency = agencyUpdate.BusinessCurrency;
-                existingAgency.Title = agencyUpdate.Title;
-                existingAgency.FirstName = agencyUpdate.FirstName;
-                existingAgency.LastName = agencyUpdate.LastName;
-                existingAgency.UserEmailId = agencyUpdate.UserEmailId;
-                existingAgency.Designation = agencyUpdate.Designation;
-                existingAgency.MobileNo = agencyUpdate.MobileNo;
-                existingAgency.UserName = agencyUpdate.UserName;
-                existingAgency.UpdatedAt = DateTime.UtcNow;
-
-                // Only update password if provided
-                if (!string.IsNullOrEmpty(agencyUpdate.Password))
-                {
-                    // Hash new password (in a real application)
-                    // existingAgency.Password = HashPassword(agencyUpdate.Password);
-                    existingAgency.Password = agencyUpdate.Password;
-                }
-
-                _context.Entry(existingAgency).State = EntityState.Modified;
-
-                try
-                {
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!AgencyExists(id))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
-
-                return NoContent();
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while updating the agency", error = ex.Message });
-            }
-        }
-
         // DELETE: api/agency/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteAgency(int id)
