@@ -42,55 +42,63 @@ public class DashboardController : ControllerBase
         }
     }
 
-    [HttpGet("recent-activities")]
-    public async Task<IActionResult> GetRecentActivities([FromQuery] int count = 5)
+  [HttpGet("recent-activities")]
+public async Task<IActionResult> GetRecentActivities([FromQuery] int count = 5)
+{
+    try
     {
-        try
+        // Step 1: Fetch hotel data from database
+        var hotelData = await _context.HotelInfo
+            .Include(h => h.Country)
+            .OrderByDescending(h => h.CreatedAt)
+            .Take(count)
+            .ToListAsync(); // Materialize first
+
+        // Step 2: Map to RecentActivity including GetTimeAgo
+        var hotelActivities = hotelData.Select(h => new RecentActivity
         {
-            var hotelActivities = await _context.HotelInfo
-                .Include(h => h.Country)
-                .OrderByDescending(h => h.CreatedAt)
-                .Take(count)
-                .Select(h => new RecentActivity
-                {
-                    Id = h.Id,
-                    Type = "hotel",
-                    Action = "created",
-                    Name = h.HotelName,
-                    CountryId = h.Country.Id,
-                    Timestamp = h.CreatedAt,
-                    TimeAgo = GetTimeAgo(h.CreatedAt)
-                })
-                .ToListAsync();
+            Id = h.Id,
+            Type = "hotel",
+            Action = "created",
+            Name = h.HotelName ?? "Unknown Hotel",
+            CountryId = h.Country?.Id ?? 0,
+            Timestamp = h.CreatedAt,
+            TimeAgo = h.CreatedAt != null ? GetTimeAgo(h.CreatedAt) : "unknown"
+        }).ToList();
 
-            var agencyActivities = await _context.Agencies
-                .OrderByDescending(a => a.CreatedAt)
-                .Take(count)
-                .Select(a => new RecentActivity
-                {
-                    Id = a.Id,
-                    Type = "agency",
-                    Action = "created",
-                    Name = a.AgencyName,
-                    CountryId = a.CountryId.Value,
-                    Timestamp = a.CreatedAt,
-                    TimeAgo = GetTimeAgo(a.CreatedAt)
-                })
-                .ToListAsync();
+        // Step 3: Fetch agency data
+        var agencyData = await _context.Agencies
+            .OrderByDescending(a => a.CreatedAt)
+            .Take(count)
+            .ToListAsync();
 
-            var allActivities = hotelActivities.Concat(agencyActivities)
-                .OrderByDescending(a => a.Timestamp)
-                .Take(count)
-                .ToList();
-
-            return Ok(allActivities);
-        }
-        catch (Exception ex)
+        // Step 4: Map agency data
+        var agencyActivities = agencyData.Select(a => new RecentActivity
         {
-            _logger.LogError(ex, "Error fetching recent activities");
-            return StatusCode(500, $"Internal server error: {ex.Message}");
-        }
+            Id = a.Id,
+            Type = "agency",
+            Action = "created",
+            Name = a.AgencyName ?? "Unknown Agency",
+            CountryId = a.CountryId ?? 0,
+            Timestamp = a.CreatedAt,
+            TimeAgo = a.CreatedAt != null ? GetTimeAgo(a.CreatedAt) : "unknown"
+        }).ToList();
+
+        // Step 5: Combine, sort, and take final count
+        var allActivities = hotelActivities
+            .Concat(agencyActivities)
+            .OrderByDescending(a => a.Timestamp)
+            .Take(count)
+            .ToList();
+
+        return Ok(allActivities);
     }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Error fetching recent activities");
+        return StatusCode(500, $"Internal server error: {ex.Message}");
+    }
+}
 
     [HttpGet("hotels-by-country")]
     public async Task<IActionResult> GetHotelsByCountry()
