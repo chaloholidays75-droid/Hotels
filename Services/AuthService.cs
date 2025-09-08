@@ -87,7 +87,7 @@ namespace HotelAPI.Services
             user.ResetPasswordExpiry = DateTime.UtcNow.AddHours(1);
             await _context.SaveChangesAsync();
 
-            var resetLink = $"https://yourfrontend.com/reset-password?token={token}";
+            var resetLink = $"https://hotels-ui-obxn.onrender.com/reset-password?token={token}";
             await SendEmailAsync(user.Email, "Forgot Password", $"Click to reset: {resetLink}");
         }
 
