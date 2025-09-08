@@ -7,5 +7,7 @@ namespace HotelAPI.Settings
         public string Password { get; set; } = string.Empty;      // email account password
         public string SmtpServer { get; set; } = string.Empty;    // e.g., "smtp.gmail.com"
         public int SmtpPort { get; set; } = 587;                  // usually 587 for TLS
+
+        public string? FrontendUrl { get; set; }
     }
 }

@@ -76,21 +76,45 @@ namespace HotelAPI.Services
 
             return authResponse;
         }
-
-        public async Task SendForgotPasswordEmailAsync(ForgotPasswordRequest request)
+        private static string Base64UrlEncode(byte[] input)
         {
-            var user = await _context.Users.SingleOrDefaultAsync(u => u.Email == request.Email);
-            if (user == null) return;  // Silent fail for security
-
-            var token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
-            user.ResetPasswordToken = token;
-            user.ResetPasswordExpiry = DateTime.UtcNow.AddHours(1);
-            await _context.SaveChangesAsync();
-
-            var resetLink = $"https://hotels-ui-obxn.onrender.com/reset-password?token={token}";
-            await SendEmailAsync(user.Email, "Forgot Password", $"Click to reset: {resetLink}");
+            return Convert.ToBase64String(input)
+                .Replace("+", "-")
+                .Replace("/", "_")
+                .Replace("=", "");
         }
 
+        private static byte[] Base64UrlDecode(string input)
+        {
+            string output = input.Replace("-", "+").Replace("_", "/");
+            switch (output.Length % 4)
+            {
+                case 2: output += "=="; break;
+                case 3: output += "="; break;
+            }
+            return Convert.FromBase64String(output);
+        }
+
+
+public async Task SendForgotPasswordEmailAsync(ForgotPasswordRequest request)
+{
+    var user = await _context.Users.SingleOrDefaultAsync(u => u.Email == request.Email);
+    if (user == null) return; // Silent fail for security
+
+    var tokenBytes = RandomNumberGenerator.GetBytes(32);
+    var token = Base64UrlEncode(tokenBytes);
+
+    user.ResetPasswordToken = token;
+    user.ResetPasswordExpiry = DateTime.UtcNow.AddHours(1);
+    await _context.SaveChangesAsync();
+
+    // Use frontend URL from settings
+    // var frontendUrl = _emailSettings.FrontendUrl ?? "https://hotels-ui-obxn.onrender.com";
+    // var resetLink = $"{frontendUrl}/reset-password?token={token}&email={Uri.EscapeDataString(user.Email)}";
+    var resetLink = "http://localhost:5173/reset-password?token={token}&email={Uri.EscapeDataString(user.Email)}";
+
+    await SendEmailAsync(user.Email, "Forgot Password", $"Click to reset: {resetLink}");
+}
         public async Task ResetPasswordAsync(ResetPasswordRequest request)
         {
             var user = await _context.Users.SingleOrDefaultAsync(u => u.ResetPasswordToken == request.Token && u.ResetPasswordExpiry > DateTime.UtcNow);
