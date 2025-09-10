@@ -158,7 +158,7 @@ public async Task<IActionResult> GetMonthlyStats([FromQuery] int months = 6)
     try
     {
         var endDate = DateTime.UtcNow;
-        var startDate = endDate.AddMonths(-months + 2); // include current month
+        var startDate = endDate.AddMonths(-months + 1); // include current month
 
         // Generate all months in the range first
         var allMonths = Enumerable.Range(0, months)
