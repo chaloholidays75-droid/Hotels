@@ -152,14 +152,14 @@ public async Task<IActionResult> GetRecentActivities([FromQuery] int count = 5)
         }
     }
     // Controllers/DashboardController.cs
-  [HttpGet("monthly-stats")]
+[HttpGet("monthly-stats")]
 public async Task<IActionResult> GetMonthlyStats([FromQuery] int months = 6)
 {
     try
     {
         var endDate = DateTime.UtcNow;
-        var startDate = endDate.AddMonths(-months);
-        
+        var startDate = endDate.AddMonths(-months + 2); // include current month
+
         // Generate all months in the range first
         var allMonths = Enumerable.Range(0, months)
             .Select(i => startDate.AddMonths(i))
@@ -197,9 +197,16 @@ public async Task<IActionResult> GetMonthlyStats([FromQuery] int months = 6)
             Hotels = hotelStats
                 .FirstOrDefault(h => h.Year == month.Year && h.Month == month.Month)?.Hotels ?? 0,
             Agencies = agencyStats
-                .FirstOrDefault(a => a.Year == month.Year && a.Month == month.Month)?.Agencies ?? 0
+                .FirstOrDefault(a => a.Year == month.Year && a.Month == month.Month)?.Agencies ?? 0,
+            Date = month // keep the DateTime for proper ordering
         })
-        .OrderBy(x => x.Month)
+        .OrderBy(x => x.Date) // order chronologically
+        .Select(x => new
+        {
+            x.Month,
+            x.Hotels,
+            x.Agencies
+        })
         .ToList();
 
         return Ok(monthlyStats);
@@ -210,6 +217,7 @@ public async Task<IActionResult> GetMonthlyStats([FromQuery] int months = 6)
         return StatusCode(500, $"Internal server error: {ex.Message}");
     }
 }
+
     [HttpGet("top-countries")]
     public async Task<IActionResult> GetTopCountries()
     {
