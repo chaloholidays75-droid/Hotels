@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "qhnyKr/WvTw=",
+  "dgSpecHash": "hB2xv/4sdD0=",
   "success": true,
   "projectFilePath": "C:\\Users\\Chaloholiday\\Desktop\\ChaloHolidays_registration\\Hotel\\HotelAPI\\HotelAPI.csproj",
   "expectedPackageFiles": [
@@ -68,7 +68,8 @@
     "C:\\Users\\Chaloholiday\\.nuget\\packages\\system.runtime.compilerservices.unsafe\\6.0.0\\system.runtime.compilerservices.unsafe.6.0.0.nupkg.sha512",
     "C:\\Users\\Chaloholiday\\.nuget\\packages\\system.security.cryptography.pkcs\\8.0.1\\system.security.cryptography.pkcs.8.0.1.nupkg.sha512",
     "C:\\Users\\Chaloholiday\\.nuget\\packages\\system.text.json\\9.0.8\\system.text.json.9.0.8.nupkg.sha512",
-    "C:\\Users\\Chaloholiday\\.nuget\\packages\\system.threading.channels\\7.0.0\\system.threading.channels.7.0.0.nupkg.sha512"
+    "C:\\Users\\Chaloholiday\\.nuget\\packages\\system.threading.channels\\7.0.0\\system.threading.channels.7.0.0.nupkg.sha512",
+    "C:\\Users\\Chaloholiday\\.nuget\\packages\\microsoft.netcore.app.host.linux-x64\\9.0.8\\microsoft.netcore.app.host.linux-x64.9.0.8.nupkg.sha512"
   ],
   "logs": []
 }
