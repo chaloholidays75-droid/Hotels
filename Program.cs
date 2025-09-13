@@ -22,7 +22,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactUI", builder =>
     {
-        builder.WithOrigins("https://hotels-ui-obxn.onrender.com", "http://localhost:5173") // React dev server
+        builder.WithOrigins("https://backend.chaloholidayonline.com", "http://localhost:5173") // React dev server
                .AllowAnyHeader()
                .AllowAnyMethod()
                .AllowCredentials();
