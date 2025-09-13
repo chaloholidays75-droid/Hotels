@@ -427,3 +427,8 @@ C:\Users\Chaloholiday\Desktop\ChaloHolidays_registration\Hotel\HotelAPI\obj\Debu
 C:\Users\Chaloholiday\Desktop\ChaloHolidays_registration\Hotel\HotelAPI\obj\Debug\net9.0\HotelAPI.pdb
 C:\Users\Chaloholiday\Desktop\ChaloHolidays_registration\Hotel\HotelAPI\obj\Debug\net9.0\HotelAPI.genruntimeconfig.cache
 C:\Users\Chaloholiday\Desktop\ChaloHolidays_registration\Hotel\HotelAPI\obj\Debug\net9.0\ref\HotelAPI.dll
+C:\Users\Chaloholiday\Desktop\ChaloHolidays_registration\Hotel\HotelAPI\bin\Debug\net9.0\publish\appsettings.Development.json
+C:\Users\Chaloholiday\Desktop\ChaloHolidays_registration\Hotel\HotelAPI\bin\Debug\net9.0\publish\appsettings.json
+C:\Users\Chaloholiday\Desktop\ChaloHolidays_registration\Hotel\HotelAPI\bin\Debug\net9.0\publish\HotelAPI.deps.json
+C:\Users\Chaloholiday\Desktop\ChaloHolidays_registration\Hotel\HotelAPI\bin\Debug\net9.0\publish\HotelAPI.runtimeconfig.json
+C:\Users\Chaloholiday\Desktop\ChaloHolidays_registration\Hotel\HotelAPI\bin\Debug\net9.0\publish\HotelAPI.staticwebassets.endpoints.json
