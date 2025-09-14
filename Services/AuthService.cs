@@ -111,7 +111,8 @@ public async Task SendForgotPasswordEmailAsync(ForgotPasswordRequest request)
     // Use frontend URL from settings
     // var frontendUrl = _emailSettings.FrontendUrl ?? "https://hotels-ui-obxn.onrender.com";
     // var resetLink = $"{frontendUrl}/reset-password?token={token}&email={Uri.EscapeDataString(user.Email)}";
-    var resetLink = $"http://localhost:5173/reset-password?token={token}&email={Uri.EscapeDataString(user.Email)}";
+    // var resetLink = $"http://localhost:5173/reset-password?token={token}&email={Uri.EscapeDataString(user.Email)}";
+    var resetLink = $"https://backend.chaloholidayonline.com/reset-password?token={token}&email={Uri.EscapeDataString(user.Email)}";
 
     await SendEmailAsync(user.Email, "Forgot Password", $"Click to reset: {resetLink}");
 }
