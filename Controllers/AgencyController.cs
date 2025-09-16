@@ -109,7 +109,7 @@ public async Task<ActionResult<AgencyRegistrationResponseDto>> CreateAgency([Fro
     await _context.SaveChangesAsync();
 
     // Fire-and-forget async email sending
-    _ = SendWelcomeEmailAsync(agency.EmailId, agency.AgencyName);
+    //_ = SendWelcomeEmailAsync(agency.EmailId, agency.AgencyName);
 
     var responseDto = new AgencyRegistrationResponseDto
     {
