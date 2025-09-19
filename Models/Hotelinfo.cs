@@ -24,6 +24,10 @@ namespace HotelAPI.Models
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+        public bool IsActive { get; set; } = true;
+
+        public string? Region { get; set; }
+
         // Navigation: Contacts / Staff
         public ICollection<HotelStaff> HotelStaff { get; set; } = new List<HotelStaff>();
 

@@ -34,5 +34,7 @@ namespace HotelAPI.Models
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
         public bool IsActive { get; set; } = true;
+
+        public string? Region { get; set; }
     }
 }
