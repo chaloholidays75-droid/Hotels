@@ -5,13 +5,22 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using HotelAPI.Services;
+using HotelAPI.Filters;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Add AutoMapper
 builder.Services.AddAutoMapper(typeof(Program)); // Or specify a profile class
 
 // Add services to the container
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    // Apply ActivityLogFilter globally
+    options.Filters.Add<ActivityLogFilter>();
+});
+
+// Register HttpContextAccessor for ActivityLogFilter
+builder.Services.AddHttpContextAccessor();
 
 // Add Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
@@ -33,11 +42,15 @@ builder.Services.AddCors(options =>
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// Configure app settings
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 
+// Register services
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ActivityLogFilter>(); // Ensure filter can be injected
 
+// Configure JWT Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -54,25 +67,31 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 var app = builder.Build();
+
+// Development settings
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage(); // Shows full stack trace
 }
+
 // Enable Swagger
 app.UseSwagger();
 app.UseSwaggerUI();
-// Use routing
+
+// Enable routing
 app.UseRouting();
-// **Enable CORS middleware**
+
+// Enable CORS middleware
 app.UseCors("AllowReactUI");
 
-
+// Enable authentication & authorization
 app.UseAuthentication();
-// Map controllers
 app.UseAuthorization();
+
+// Map controllers
 app.MapControllers();
 
-// Simple health-check/test endpoint
+// Simple health-check endpoint
 app.MapGet("/", () => "Hotel API is running ✅");
 
 app.Run();

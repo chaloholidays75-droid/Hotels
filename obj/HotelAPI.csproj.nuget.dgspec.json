@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\Chaloholiday\\Desktop\\ChaloHolidays_registration\\Hotel\\HotelAPI\\HotelAPI.csproj": {}
+    "D:\\github\\Hotels\\HotelAPI.csproj": {}
   },
   "projects": {
-    "C:\\Users\\Chaloholiday\\Desktop\\ChaloHolidays_registration\\Hotel\\HotelAPI\\HotelAPI.csproj": {
+    "D:\\github\\Hotels\\HotelAPI.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Chaloholiday\\Desktop\\ChaloHolidays_registration\\Hotel\\HotelAPI\\HotelAPI.csproj",
+        "projectUniqueName": "D:\\github\\Hotels\\HotelAPI.csproj",
         "projectName": "HotelAPI",
-        "projectPath": "C:\\Users\\Chaloholiday\\Desktop\\ChaloHolidays_registration\\Hotel\\HotelAPI\\HotelAPI.csproj",
+        "projectPath": "D:\\github\\Hotels\\HotelAPI.csproj",
         "packagesPath": "C:\\Users\\Chaloholiday\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Chaloholiday\\Desktop\\ChaloHolidays_registration\\Hotel\\HotelAPI\\obj\\",
+        "outputPath": "D:\\github\\Hotels\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\Chaloholiday\\AppData\\Roaming\\NuGet\\NuGet.Config"
@@ -68,7 +68,7 @@
               "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
               "suppressParent": "All",
               "target": "Package",
-              "version": "[9.0.8, )"
+              "version": "[9.0.9, )"
             },
             "MimeKit": {
               "target": "Package",
