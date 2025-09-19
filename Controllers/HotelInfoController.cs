@@ -4,9 +4,11 @@ using HotelAPI.Data;
 using HotelAPI.Models;
 using HotelAPI.Models.DTO;
 using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 
 namespace HotelAPI.Controllers
 {
+    [Authorize]
     [Route("api/hotels")]
     [ApiController]
     public class HotelController : ControllerBase
