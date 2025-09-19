@@ -36,11 +36,12 @@ namespace HotelAPI.Filters
                 {
                     var entityName = resultContext.Controller.GetType().Name.Replace("Controller", "");
 
-                    // Get the username from JWT claim
-                    var username = _httpContextAccessor.HttpContext?.User?.Claims
-                        .FirstOrDefault(c => c.Type == "FullName")?.Value
-                        ?? _httpContextAccessor.HttpContext?.User?.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value
-                        ?? "Unknown user";
+                    // Get username from JWT
+                    var userClaims = _httpContextAccessor.HttpContext?.User;
+                    string username = userClaims?.FindFirst("FullName")?.Value   // custom FullName claim
+                                      ?? userClaims?.FindFirst(ClaimTypes.Name)?.Value // Identity.Name fallback
+                                      ?? userClaims?.FindFirst(ClaimTypes.Email)?.Value // Email fallback
+                                      ?? "Unknown user";
 
                     int entityId = 0;
                     string entityLabel = "";
@@ -58,7 +59,7 @@ namespace HotelAPI.Filters
                             entityId = hotel.Id;
                             entityLabel = hotel.HotelName;
                         }
-                        else if (arg is int id) // id from route
+                        else if (arg is int id)
                         {
                             entityId = id;
                         }
