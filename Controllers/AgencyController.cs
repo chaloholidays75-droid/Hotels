@@ -200,28 +200,28 @@ namespace AgencyManagementSystem.Controllers
         // PATCH: api/agency/5/status (Admin only)
         [Authorize(Roles = "Admin")]
         [HttpPatch("{id}/status")]
-        public async Task<IActionResult> UpdateAgencyStatus(int id, [FromBody] UpdateStatusDto dto)
+        public async Task<IActionResult> UpdateHotelStatus(int id, [FromBody] UpdateStatusDto dto)
         {
             try
             {
-                var agency = await _context.Agencies.FindAsync(id);
-                if (agency == null)
-                    return NotFound(new { message = "Agency not found" });
+                var hotel = await _context.HotelInfo.FindAsync(id);
+                if (hotel == null)
+                    return NotFound(new { message = "Hotel not found" });
 
-                agency.IsActive = dto.IsActive;
-                agency.UpdatedAt = DateTime.UtcNow;
+                hotel.IsActive = dto.IsActive;
+                hotel.UpdatedAt = DateTime.UtcNow;
 
-                _context.Entry(agency).State = EntityState.Modified;
+                _context.Entry(hotel).State = EntityState.Modified;
                 await _context.SaveChangesAsync();
 
-                return Ok(new { message = $"Agency {(dto.IsActive ? "activated" : "deactivated")} successfully" });
+                return Ok(new { message = $"Hotel {(dto.IsActive ? "activated" : "deactivated")} successfully" });
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Error updating agency status: " + ex.Message);
                 return StatusCode(500, new { message = ex.Message });
             }
         }
+
 
 
         // Helper: Check username/email
