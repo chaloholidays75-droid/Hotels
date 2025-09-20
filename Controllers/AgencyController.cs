@@ -15,7 +15,7 @@ namespace AgencyManagementSystem.Controllers
 {
     [Authorize]
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/agency")]
     public class AgencyController : ControllerBase
     {
         private readonly AppDbContext _context;
