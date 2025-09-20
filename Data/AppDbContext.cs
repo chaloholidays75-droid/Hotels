@@ -15,6 +15,8 @@ namespace HotelAPI.Data
         public DbSet<User> Users { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<Agency> Agencies { get; set; }
+        public DbSet<AgencyStaff> AgencyStaff { get; set; }
+
         public DbSet<RecentActivity> RecentActivities { get; set; }
 
 

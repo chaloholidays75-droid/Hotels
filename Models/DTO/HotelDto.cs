@@ -7,6 +7,7 @@ namespace HotelAPI.Models.DTO
         public int Id { get; set; }
         public int CountryId { get; set; } 
         public int CityId { get; set; } 
+        public string? Region { get; set; }
         public string HotelName { get; set; } = string.Empty;
         public string HotelEmail { get; set; } = string.Empty;
         public string HotelContactNumber { get; set; } = string.Empty;
@@ -20,5 +21,8 @@ namespace HotelAPI.Models.DTO
         public List<HotelStaffDto> ReservationPersons { get; set; } = new();
         public List<HotelStaffDto> AccountsPersons { get; set; } = new();
         public List<HotelStaffDto> Concierges { get; set; } = new();
+
+        // Active / Inactive
+        public bool IsActive { get; set; } = true;
     }
 }

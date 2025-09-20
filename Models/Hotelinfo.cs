@@ -13,6 +13,7 @@ namespace HotelAPI.Models
 
         public int CountryId { get; set; }
         public Country Country { get; set; } = null!;
+        public string? Region { get; set; }
 
         // Hotel Details
         public string HotelName { get; set; } = string.Empty;
@@ -26,7 +27,9 @@ namespace HotelAPI.Models
 
         public bool IsActive { get; set; } = true;
 
-        public string? Region { get; set; }
+       
+
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
         // Navigation: Contacts / Staff
         public ICollection<HotelStaff> HotelStaff { get; set; } = new List<HotelStaff>();

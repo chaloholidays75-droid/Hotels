@@ -23,10 +23,12 @@ namespace HotelAPI.Controllers
         }
 
         // GET: api/hotels
+        [Authorize(Roles = "Admin,Employee")]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<HotelDto>>> GetHotels()
         {
             var hotels = await _context.HotelInfo
+                                       .Where(h => h.IsActive)
                                        .Include(h => h.HotelStaff)
                                        .Include(h => h.City)
                                        .Include(h => h.Country)
@@ -36,6 +38,7 @@ namespace HotelAPI.Controllers
         }
 
         // GET: api/hotels/{id}
+        [Authorize(Roles = "Admin,Employee")]
         [HttpGet("{id}")]
         public async Task<ActionResult<HotelDto>> GetHotel(int id)
         {
@@ -43,7 +46,7 @@ namespace HotelAPI.Controllers
                                       .Include(h => h.HotelStaff)
                                       .Include(h => h.City)
                                       .Include(h => h.Country)
-                                      .FirstOrDefaultAsync(h => h.Id == id);
+                                      .FirstOrDefaultAsync(h => h.Id == id && h.IsActive);
 
             if (hotel == null)
                 return NotFound(new { message = "Hotel not found" });
@@ -52,88 +55,71 @@ namespace HotelAPI.Controllers
         }
 
         // POST: api/hotels
-[HttpPost]
-public async Task<ActionResult<HotelDto>> CreateHotel([FromBody] HotelDto dto)
-{
-    // Validate city belongs to country
-    var city = await _context.Cities
-                             .Include(c => c.Country)
-                             .FirstOrDefaultAsync(c => c.Id == dto.CityId && c.CountryId == dto.CountryId);
-
-    if (city == null)
-        return BadRequest(new { message = "City does not belong to the selected country" });
-
-    // Prevent duplicate hotels
-    var exists = await _context.HotelInfo
-                               .AnyAsync(h => h.HotelName == dto.HotelName
-                                           && h.Address == dto.Address
-                                           && h.CityId == dto.CityId);
-    if (exists)
-        return BadRequest(new { message = "Hotel with same details already exists" });
-
-    // Map DTO to HotelInfo
-    var hotel = _mapper.Map<HotelInfo>(dto);
-    hotel.City = city;
-    hotel.Country = city.Country;
-
-    // Add staff manually
-    void AddStaff(List<HotelStaffDto>? staffDtos, string role)
-    {
-        if (staffDtos != null)
+        [Authorize(Roles = "Admin,Employee")]
+        [HttpPost]
+        public async Task<ActionResult<HotelDto>> CreateHotel([FromBody] HotelDto dto)
         {
-            foreach (var s in staffDtos)
-            {
-                var staff = _mapper.Map<HotelStaff>(s);
-                staff.Role = role;
-                staff.HotelInfo = hotel; // ✅ Important: assign parent
-                hotel.HotelStaff.Add(staff);
-            }
-        }
-    }
-
-    AddStaff(dto.SalesPersons, "Sales");
-    AddStaff(dto.ReceptionPersons, "Reception");
-    AddStaff(dto.AccountsPersons, "Accounts");
-    AddStaff(dto.Concierges, "Concierge");
-    AddStaff(dto.ReservationPersons, "Reservation");
-
-    // Save everything in one go
-    _context.HotelInfo.Add(hotel);
-    await _context.SaveChangesAsync();
-
-    return CreatedAtAction(nameof(GetHotel), new { id = hotel.Id }, _mapper.Map<HotelDto>(hotel));
-}
-
-        // PUT: api/hotels/{id}
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateHotel(int id, [FromBody] HotelDto dto)
-        {
-            var hotel = await _context.HotelInfo
-                                      .Include(h => h.HotelStaff)
-                                      .Include(h => h.City)
-                                      .Include(h => h.Country)
-                                      .FirstOrDefaultAsync(h => h.Id == id);
-
-            if (hotel == null)
-                return NotFound(new { message = "Hotel not found" });
-
-            // ✅ Validate city belongs to country
             var city = await _context.Cities
                                      .Include(c => c.Country)
                                      .FirstOrDefaultAsync(c => c.Id == dto.CityId && c.CountryId == dto.CountryId);
 
             if (city == null)
+                return BadRequest(new { message = "City does not belong to the selected country" });
+
+            var exists = await _context.HotelInfo
+                                       .AnyAsync(h => h.HotelName == dto.HotelName
+                                                   && h.Address == dto.Address
+                                                   && h.CityId == dto.CityId
+                                                   && h.IsActive);
+            if (exists)
+                return BadRequest(new { message = "Hotel with same details already exists" });
+
+            var hotel = _mapper.Map<HotelInfo>(dto);
+            hotel.City = city;
+            hotel.Country = city.Country;
+            hotel.IsActive = true;
+
+            AddStaff(dto, hotel);
+
+            _context.HotelInfo.Add(hotel);
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction(nameof(GetHotel), new { id = hotel.Id }, _mapper.Map<HotelDto>(hotel));
+        }
+
+        // PUT: api/hotels/{id} (Admin only)
+        // PUT: api/hotels/{id} (Admin only)
+        [Authorize(Roles = "Admin")]
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateHotel(int id, [FromBody] HotelDto dto)
+        {
+            var hotel = await _context.HotelInfo
+                                    .Include(h => h.HotelStaff)
+                                    .Include(h => h.City)
+                                    .Include(h => h.Country)
+                                    .FirstOrDefaultAsync(h => h.Id == id);
+
+            if (hotel == null)
+                return NotFound(new { message = "Hotel not found" });
+
+            var city = await _context.Cities
+                                    .Include(c => c.Country)
+                                    .FirstOrDefaultAsync(c => c.Id == dto.CityId && c.CountryId == dto.CountryId);
+
+            if (city == null)
                 return BadRequest("City does not belong to the selected country");
 
-            // Update hotel details
+            // Update hotel fields
             hotel.HotelName = dto.HotelName;
             hotel.HotelEmail = dto.HotelEmail;
             hotel.HotelContactNumber = dto.HotelContactNumber;
             hotel.Address = dto.Address;
+            hotel.Region = dto.Region;
             hotel.HotelChain = dto.HotelChain;
             hotel.SpecialRemarks = dto.SpecialRemarks;
             hotel.City = city;
             hotel.Country = city.Country;
+            hotel.IsActive = dto.IsActive; // <-- update active/inactive status
 
             // Remove old staff
             _context.HotelStaff.RemoveRange(hotel.HotelStaff);
@@ -141,29 +127,65 @@ public async Task<ActionResult<HotelDto>> CreateHotel([FromBody] HotelDto dto)
 
             AddStaff(dto, hotel);
 
+            hotel.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
+
             return NoContent();
         }
 
-        // DELETE: api/hotels/{id}
+
+        // DELETE: api/hotels/{id} (Admin only, soft delete)
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteHotel(int id)
         {
             var hotel = await _context.HotelInfo
-                                      .Include(h => h.HotelStaff)
-                                      .FirstOrDefaultAsync(h => h.Id == id);
+                                    .Include(h => h.HotelStaff)
+                                    .FirstOrDefaultAsync(h => h.Id == id && h.IsActive);
 
             if (hotel == null)
                 return NotFound(new { message = "Hotel not found" });
 
-            _context.HotelStaff.RemoveRange(hotel.HotelStaff);
-            _context.HotelInfo.Remove(hotel);
+            // Set inactive instead of deleting
+            hotel.IsActive = false;
+            hotel.UpdatedAt = DateTime.UtcNow;
+
+            _context.HotelInfo.Update(hotel);
             await _context.SaveChangesAsync();
 
             return NoContent();
         }
+        // PATCH: api/hotels/{id}/status (Admin only)
+        [Authorize(Roles = "Admin")]
+        [HttpPatch("{id}/status")]
+        public async Task<IActionResult> UpdateHotelStatus(int id, [FromBody] bool isActive)
+        {
+            var hotel = await _context.HotelInfo.FindAsync(id);
+            if (hotel == null)
+                return NotFound(new { message = "Hotel not found" });
 
-        // Helper: Add staff without breaking existing logic
+            hotel.IsActive = isActive;
+            hotel.UpdatedAt = DateTime.UtcNow;
+
+            _context.HotelInfo.Update(hotel);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = $"Hotel {(isActive ? "activated" : "deactivated")} successfully" });
+        }
+
+        // GET: api/hotels/by-city/{cityId}
+        [Authorize(Roles = "Admin,Employee")]
+        [HttpGet("by-city/{cityId}")]
+        public async Task<ActionResult<IEnumerable<HotelDto>>> GetHotelsByCity(int cityId)
+        {
+            var hotels = await _context.HotelInfo
+                                       .Where(h => h.CityId == cityId && h.IsActive)
+                                       .ToListAsync();
+
+            return Ok(_mapper.Map<List<HotelDto>>(hotels));
+        }
+
+        // Helper: Add staff
         private void AddStaff(HotelDto dto, HotelInfo hotel)
         {
             void MapStaff(List<HotelStaffDto>? staffDtos, string role)
@@ -186,15 +208,5 @@ public async Task<ActionResult<HotelDto>> CreateHotel([FromBody] HotelDto dto)
             MapStaff(dto.AccountsPersons, "Accounts");
             MapStaff(dto.Concierges, "Concierge");
         }
-        [HttpGet("by-city/{cityId}")]
-        public async Task<ActionResult<IEnumerable<HotelDto>>> GetHotelsByCity(int cityId)
-        {
-            var hotels = await _context.HotelInfo
-                                       .Where(h => h.CityId == cityId)
-                                       .ToListAsync();
-
-            return Ok(_mapper.Map<List<HotelDto>>(hotels));
-        }
-
     }
 }
