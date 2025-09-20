@@ -198,27 +198,30 @@ namespace AgencyManagementSystem.Controllers
         }
 
         // PATCH: api/agency/5/status (Admin only)
-[HttpPatch("{id}/status")]
-public async Task<IActionResult> UpdateAgencyStatus(int id, [FromBody] UpdateAgencyStatusDto dto)
-{
-    if (dto == null)
-        return BadRequest(new { message = "Invalid request body" });
+        [Authorize(Roles = "Admin")]
+        [HttpPatch("{id}/status")]
+        public async Task<IActionResult> UpdateAgencyStatus(int id, [FromBody] UpdateAgencyStatusDto dto)
+        {
+            try
+            {
+                var agency = await _context.Agencies.FindAsync(id);
+                if (agency == null)
+                    return NotFound(new { message = "Agency not found" });
 
-    if (id != dto.AgencyId)
-        return BadRequest(new { message = "Route id and body AgencyId do not match" });
+                agency.IsActive = dto.IsActive;
+                agency.UpdatedAt = DateTime.UtcNow;
 
-    var agency = await _context.Agencies.FindAsync(id);
-    if (agency == null)
-        return NotFound(new { message = "Agency not found" });
+                _context.Entry(agency).State = EntityState.Modified;
+                await _context.SaveChangesAsync();
 
-    agency.IsActive = dto.IsActive;
-    agency.UpdatedAt = DateTime.UtcNow;
-
-    _context.Entry(agency).State = EntityState.Modified;
-    await _context.SaveChangesAsync();
-
-    return Ok(new { message = $"Agency {(dto.IsActive ? "activated" : "deactivated")} successfully" });
-}
+                return Ok(new { message = $"Agency {(dto.IsActive ? "activated" : "deactivated")} successfully" });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error updating agency status: " + ex.Message);
+                return StatusCode(500, new { message = ex.Message });
+            }
+        }
 
 
         // Helper: Check username/email
