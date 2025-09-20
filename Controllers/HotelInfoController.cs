@@ -158,22 +158,26 @@ namespace HotelAPI.Controllers
         // PATCH: api/hotels/{id}/status (Admin only)
         [Authorize(Roles = "Admin")]
         [HttpPatch("{id}/status")]
-        public async Task<IActionResult> UpdateHotelStatus(int id, [FromBody] UpdateStatusDto dto)
+        public async Task<IActionResult> UpdateHotelStatus(int id, [FromBody] HotelStatusDto statusDto)
         {
             var hotel = await _context.HotelInfo.FindAsync(id);
             if (hotel == null)
                 return NotFound(new { message = "Hotel not found" });
 
-            hotel.IsActive = dto.IsActive;
+            hotel.IsActive = statusDto.IsActive;
             hotel.UpdatedAt = DateTime.UtcNow;
 
-            // EF is tracking the entity; no need to call Update()
+            _context.HotelInfo.Update(hotel);
             await _context.SaveChangesAsync();
 
-            return Ok(new { message = $"Hotel {(dto.IsActive ? "activated" : "deactivated")} successfully" });
+            return Ok(new { message = $"Hotel {(statusDto.IsActive ? "activated" : "deactivated")} successfully" });
         }
 
-
+        // Add this DTO class
+        public class HotelStatusDto
+        {
+            public bool IsActive { get; set; }
+        }
         // GET: api/hotels/by-city/{cityId}
         [Authorize(Roles = "Admin,Employee")]
         [HttpGet("by-city/{cityId}")]
