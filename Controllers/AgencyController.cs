@@ -210,9 +210,20 @@ namespace AgencyManagementSystem.Controllers
             agency.UpdatedAt = DateTime.UtcNow;
 
             _context.Entry(agency).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
+            // await _context.SaveChangesAsync();
 
-            return Ok(new { message = $"Agency {(isActive ? "activated" : "deactivated")} successfully" });
+            // return Ok(new { message = $"Agency {(isActive ? "activated" : "deactivated")} successfully" });
+        
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error saving agency status: " + ex.Message);
+                return StatusCode(500, new { message = ex.Message });
+            }
+
         }
 
         // Helper: Check username/email
