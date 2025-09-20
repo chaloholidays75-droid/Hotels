@@ -200,7 +200,7 @@ namespace AgencyManagementSystem.Controllers
         // PATCH: api/agency/5/status (Admin only)
         [Authorize(Roles = "Admin")]
         [HttpPatch("{id}/status")]
-        public async Task<IActionResult> UpdateAgencyStatus(int id, [FromBody] UpdateAgencyStatusDto dto)
+        public async Task<IActionResult> UpdateAgencyStatus(int id, [FromBody] UpdateStatusDto dto)
         {
             try
             {
