@@ -198,33 +198,31 @@ namespace AgencyManagementSystem.Controllers
         }
 
         // PATCH: api/agency/5/status (Admin only)
-        [Authorize(Roles = "Admin")]
-        [HttpPatch("{id}/status")]
-        public async Task<IActionResult> UpdateAgencyStatus(int id, [FromBody] bool isActive)
-        {
-            var agency = await _context.Agencies.FindAsync(id);
-            if (agency == null)
-                return NotFound(new { message = "Agency not found" });
+  [Authorize(Roles = "Admin")]
+[HttpPatch("{id}/status")]
+public async Task<IActionResult> UpdateAgencyStatus(int id, [FromBody] bool isActive)
+{
+    try
+    {
+        var agency = await _context.Agencies.FindAsync(id);
+        if (agency == null)
+            return NotFound(new { message = "Agency not found" });
 
-            agency.IsActive = isActive;
-            agency.UpdatedAt = DateTime.UtcNow;
+        agency.IsActive = isActive;
+        agency.UpdatedAt = DateTime.UtcNow;
 
-            _context.Entry(agency).State = EntityState.Modified;
-            // await _context.SaveChangesAsync();
+        _context.Entry(agency).State = EntityState.Modified;
+        await _context.SaveChangesAsync();
 
-            // return Ok(new { message = $"Agency {(isActive ? "activated" : "deactivated")} successfully" });
-        
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Error saving agency status: " + ex.Message);
-                return StatusCode(500, new { message = ex.Message });
-            }
+        return Ok(new { message = $"Agency {(isActive ? "activated" : "deactivated")} successfully" });
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine("Error updating agency status: " + ex.Message);
+        return StatusCode(500, new { message = ex.Message });
+    }
+}
 
-        }
 
         // Helper: Check username/email
         [Authorize(Roles = "Admin,Employee")]
