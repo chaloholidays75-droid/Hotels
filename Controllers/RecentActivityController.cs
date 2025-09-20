@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using HotelAPI.Data;
 using HotelAPI.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace HotelAPI.Controllers
 {
@@ -37,5 +38,40 @@ namespace HotelAPI.Controllers
                 .ToListAsync();
             return Ok(activities);
         }
+
+        // Create a new recent activity
+        [HttpPost]
+        [Authorize] // Require authentication
+        public async Task<IActionResult> Create([FromBody] RecentActivity activity)
+        {
+            if (activity == null)
+                return BadRequest("Invalid activity");
+
+            // Capture username from logged-in user
+            activity.Username = User.Identity?.Name ?? "Unknown user";
+            activity.CreatedAt = DateTime.UtcNow;
+
+            // Optional: Build description automatically if not provided
+            if (string.IsNullOrEmpty(activity.Description))
+            {
+                activity.Description = $"{activity.ActionType} {activity.Entity} \"{activity.EntityId}\"";
+            }
+
+            _context.RecentActivities.Add(activity);
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction(nameof(GetAll), new { id = activity.Id }, activity);
+        }
+        [HttpGet("paged")]
+        public async Task<IActionResult> GetPaged([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+        {
+            var activities = await _context.RecentActivities
+                .OrderByDescending(a => a.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+            return Ok(activities);
+        }
+
     }
 }
