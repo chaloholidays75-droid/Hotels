@@ -28,7 +28,7 @@ namespace HotelAPI.Controllers
         public async Task<ActionResult<IEnumerable<HotelDto>>> GetHotels()
         {
             var hotels = await _context.HotelInfo
-                                       .Where(h => h.IsActive)
+                                       
                                        .Include(h => h.HotelStaff)
                                        .Include(h => h.City)
                                        .Include(h => h.Country)
@@ -167,7 +167,7 @@ namespace HotelAPI.Controllers
             hotel.IsActive = statusDto.IsActive;
             hotel.UpdatedAt = DateTime.UtcNow;
 
-            _context.HotelInfo.Update(hotel);
+            // _context.HotelInfo.Update(hotel);
             await _context.SaveChangesAsync();
 
             return Ok(new { message = $"Hotel {(statusDto.IsActive ? "activated" : "deactivated")} successfully" });
