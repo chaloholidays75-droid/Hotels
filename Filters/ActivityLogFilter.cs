@@ -20,73 +20,69 @@ namespace HotelAPI.Filters
         {
             var resultContext = await next();
 
-            if (resultContext.Exception == null) // only log successful actions
+            if (resultContext.Exception != null) return; // only log successful actions
+
+            var httpMethod = resultContext.HttpContext.Request.Method;
+            string actionType = httpMethod switch
             {
-                var httpMethod = resultContext.HttpContext.Request.Method;
-                string actionType = httpMethod switch
-                {
-                    "POST" => "Created",
-                    "PUT" => "Edited",
-                    "PATCH" => "Edited",
-                    "DELETE" => "Deleted",
-                    _ => ""
-                };
+                "POST" => "Created",
+                "PUT" => "Edited",
+                "PATCH" => "Edited",
+                "DELETE" => "Deleted",
+                _ => ""
+            };
 
-                if (!string.IsNullOrEmpty(actionType))
-                {
-                    var entityName = resultContext.Controller.GetType().Name.Replace("Controller", "");
+            if (string.IsNullOrEmpty(actionType)) return;
 
-                    // Get username and role from JWT claims
-                    var userClaims = _httpContextAccessor.HttpContext?.User;
-                    string username = userClaims?.FindFirst("FullName")?.Value
-                                      ?? userClaims?.FindFirst(ClaimTypes.Name)?.Value
-                                      ?? userClaims?.FindFirst(ClaimTypes.Email)?.Value
-                                      ?? "Unknown user";
+            // Get entity name from controller
+            var entityName = resultContext.Controller.GetType().Name.Replace("Controller", "");
 
-                    string role = userClaims?.FindFirst(ClaimTypes.Role)?.Value ?? "Unknown role";
+            // Get user info from JWT claims
+            var userClaims = _httpContextAccessor.HttpContext?.User;
+            string username = userClaims?.FindFirst("FullName")?.Value
+                              ?? userClaims?.FindFirst(ClaimTypes.Name)?.Value
+                              ?? userClaims?.FindFirst(ClaimTypes.Email)?.Value
+                              ?? "Unknown user";
 
-                    int entityId = 0;
-                    string entityLabel = "";
+            string role = userClaims?.FindFirst(ClaimTypes.Role)?.Value ?? "Unknown role";
 
-                    // Try to extract entity info from action arguments
-                    foreach (var arg in context.ActionArguments.Values)
-                    {
-                        var argType = arg?.GetType();
-                        if (arg == null) continue;
+            // Extract entity info from action arguments
+            int entityId = 0;
+            string entityLabel = "";
 
-                        // Check for Id property
-                        var idProp = argType.GetProperty("Id");
-                        if (idProp != null)
-                        {
-                            entityId = (int)(idProp.GetValue(arg) ?? 0);
-                        }
+            foreach (var arg in context.ActionArguments.Values)
+            {
+                if (arg == null) continue;
 
-                        // Check for Name/Title/Label property
-                        var nameProp = argType.GetProperty("AgencyName") ?? 
-                                       argType.GetProperty("HotelName") ??
-                                       argType.GetProperty("Name") ??
-                                       argType.GetProperty("Title");
-                        if (nameProp != null)
-                        {
-                            entityLabel = nameProp.GetValue(arg)?.ToString() ?? "";
-                        }
-                    }
+                var argType = arg.GetType();
+                var idProp = argType.GetProperty("Id");
+                if (idProp != null) entityId = (int)(idProp.GetValue(arg) ?? 0);
 
-                    // Create activity log
-                    var log = new RecentActivity
-                    {
-                        Username = username,
-                        ActionType = actionType,
-                        Entity = entityName,
-                        EntityId = entityId,
-                        Description = $"{username} ({role}) {actionType.ToLower()} {entityName} \"{entityLabel}\"",
-                        CreatedAt = DateTime.UtcNow
-                    };
-
-                    _context.RecentActivities.Add(log);
-                    await _context.SaveChangesAsync();
-                }
+                var nameProp = argType.GetProperty("AgencyName") ??
+                               argType.GetProperty("HotelName") ??
+                               argType.GetProperty("Name") ??
+                               argType.GetProperty("Title");
+                if (nameProp != null) entityLabel = nameProp.GetValue(arg)?.ToString() ?? "";
             }
+
+            // Create the log object
+            var log = new RecentActivity
+            {
+                Username = username,
+                Role = role,
+                ActionType = actionType.ToLower(),
+                Entity = entityName.ToLower(),
+                Description = entityLabel,
+                EntityId = entityId,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            // Log to console
+            Console.WriteLine($"[{log.CreatedAt}] {log.Username}  {log.ActionType} {log.Entity} -> {log.Description}");
+
+            // Save to database
+            _context.RecentActivities.Add(log);
+            await _context.SaveChangesAsync();
         }
     }
 }
