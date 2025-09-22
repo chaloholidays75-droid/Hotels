@@ -188,23 +188,23 @@ public async Task<IActionResult> GetMonthlyStats([FromQuery] int months = 6)
             return StatusCode(500, $"Internal server error: {ex.Message}");
         }
     }
-     [HttpGet("recent-activities")]
-        public async Task<IActionResult> GetRecentActivities()
-        {
-            var activities = await _context.RecentActivities
-                .OrderByDescending(r => r.CreatedAt)
-                .Select(r => new {
-                    id = r.Id,
-                    user = r.Username,      // this is what your React app will use
-                    action = r.ActionType,
-                    type = r.Entity.ToLower(),
-                    name = r.Description,
-                    timestamp = r.CreatedAt
-                })
-                .ToListAsync();
+    //  [HttpGet("recent-activities")]
+    //     public async Task<IActionResult> GetRecentActivities()
+    //     {
+    //         var activities = await _context.RecentActivities
+    //             .OrderByDescending(r => r.CreatedAt)
+    //             .Select(r => new {
+    //                 id = r.Id,
+    //                 user = r.Username,      // this is what your React app will use
+    //                 action = r.ActionType,
+    //                 type = r.Entity.ToLower(),
+    //                 name = r.Description,
+    //                 timestamp = r.CreatedAt
+    //             })
+    //             .ToListAsync();
 
-            return Ok(activities);
-        }
+    //         return Ok(activities);
+    //     }
 
     private string GetTimeAgo(DateTime dateTime)
         {
