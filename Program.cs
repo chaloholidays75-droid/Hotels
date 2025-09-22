@@ -29,7 +29,7 @@ builder.Services.AddSwaggerGen();
 // Configure CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowReactUI", builder =>
+    options.AddPolicy("AllowAll", builder =>
     {
         builder.WithOrigins("https://backend.chaloholidayonline.com", "http://localhost:5173") // React dev server
                .AllowAnyHeader()
@@ -82,7 +82,7 @@ app.UseSwaggerUI();
 app.UseRouting();
 
 // Enable CORS middleware
-app.UseCors("AllowReactUI");
+app.UseCors("AllowAll");
 
 // Enable authentication & authorization
 app.UseAuthentication();
