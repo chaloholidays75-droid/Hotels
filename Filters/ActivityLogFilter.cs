@@ -3,6 +3,7 @@ using HotelAPI.Data;
 using HotelAPI.Models;
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace HotelAPI.Filters
 {
@@ -10,11 +11,13 @@ namespace HotelAPI.Filters
     {
         private readonly AppDbContext _context;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly ILogger<ActivityLogFilter> _logger;
 
-        public ActivityLogFilter(AppDbContext context, IHttpContextAccessor httpContextAccessor)
+        public ActivityLogFilter(AppDbContext context, IHttpContextAccessor httpContextAccessor, ILogger<ActivityLogFilter> logger)
         {
             _context = context;
             _httpContextAccessor = httpContextAccessor;
+            _logger = logger;
         }
 
         public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
@@ -39,13 +42,32 @@ namespace HotelAPI.Filters
 
             var entityName = resultContext.Controller.GetType().Name.Replace("Controller", "");
 
-            // --- 1. Try JWT claims first ---
+            // --- Log request info for debugging ---
+            _logger.LogInformation("Request to {path} method {method}", resultContext.HttpContext.Request.Path, httpMethod);
+            var authHeader = resultContext.HttpContext.Request.Headers["Authorization"].FirstOrDefault();
+            _logger.LogInformation("Authorization header: {auth}", authHeader ?? "None");
+
             var userClaims = _httpContextAccessor.HttpContext?.User;
+
+            if (userClaims?.Identity?.IsAuthenticated == true)
+            {
+                _logger.LogInformation("User is authenticated. Claims:");
+                foreach (var c in userClaims.Claims)
+                {
+                    _logger.LogInformation("  {type} = {value}", c.Type, c.Value);
+                }
+            }
+            else
+            {
+                _logger.LogInformation("User is NOT authenticated (no claims).");
+            }
+
+            // --- Determine username ---
             string username = userClaims?.FindFirst("FullName")?.Value
                               ?? userClaims?.FindFirst(ClaimTypes.Name)?.Value
                               ?? userClaims?.FindFirst(ClaimTypes.Email)?.Value;
 
-            // --- 2. Fallback to DB using NameIdentifier ---
+            // --- Fallback to DB ---
             if (string.IsNullOrEmpty(username) && userClaims != null)
             {
                 var userIdClaim = userClaims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -57,7 +79,7 @@ namespace HotelAPI.Filters
                 }
             }
 
-            // --- 3. Final fallback ---
+            // --- Final fallback ---
             if (string.IsNullOrEmpty(username))
                 username = "System";
 
