@@ -6,8 +6,8 @@ namespace HotelAPI.Data
 {
     public class AppDbContext : DbContext
     {
-        private readonly ActivityLogger _activityLogger;
-        public AppDbContext(DbContextOptions<AppDbContext> options, ActivityLogger activityLogger) : base(options)
+        private readonly ActivityLogFilter _activityLogger;
+        public AppDbContext(DbContextOptions<AppDbContext> options, ActivityLogFilter activityLogger) : base(options)
         {
              _activityLogger = activityLogger;
         }

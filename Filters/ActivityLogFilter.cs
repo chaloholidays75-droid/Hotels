@@ -1,18 +1,20 @@
 using HotelAPI.Data;
 using HotelAPI.Models;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
 
 namespace HotelAPI.Filters
 {
-    public class ActivityLogger
+    public class ActivityLogFilter : IAsyncActionFilter
     {
         private readonly AppDbContext _context;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public ActivityLogger(AppDbContext context, IHttpContextAccessor httpContextAccessor)
+        public ActivityLogFilter(AppDbContext context, IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
             _httpContextAccessor = httpContextAccessor;
@@ -31,8 +33,8 @@ namespace HotelAPI.Filters
             return (1, "System"); // fallback for system actions
         }
 
-        // Log activity
-        public async Task LogAsync(string action, string entity, int? entityId, string? description)
+        // Log a single activity
+        private async Task LogAsync(string action, string entity, int? entityId, string? description)
         {
             var (userId, userName) = GetCurrentUser();
 
@@ -52,7 +54,7 @@ namespace HotelAPI.Filters
         }
 
         // Log changes from DbContext entries
-        public async Task LogChangesAsync(Microsoft.EntityFrameworkCore.ChangeTracking.ChangeTracker changeTracker)
+        public async Task LogChangesAsync(ChangeTracker changeTracker)
         {
             var entries = changeTracker.Entries()
                 .Where(e => e.State == Microsoft.EntityFrameworkCore.EntityState.Added ||
@@ -88,6 +90,16 @@ namespace HotelAPI.Filters
 
                 await LogAsync(action, entityName, entityId, description);
             }
+        }
+
+        // IAsyncActionFilter implementation
+        public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
+        {
+            // Execute the action
+            var executedContext = await next();
+
+            // Log all changes after action execution
+            await LogChangesAsync(_context.ChangeTracker);
         }
     }
 }
