@@ -192,6 +192,9 @@ namespace HotelAPI.Controllers
             hotel.IsActive = statusDto.IsActive;
             hotel.UpdatedAt = DateTime.UtcNow;
 
+            // Explicitly tell EF this entity changed
+            _context.Entry(hotel).State = EntityState.Modified;
+
             await _context.SaveChangesAsync();
 
             return Ok(new { message = $"Hotel {(statusDto.IsActive ? "activated" : "deactivated")} successfully" });
