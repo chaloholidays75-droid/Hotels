@@ -2,16 +2,14 @@ using System;
 
 namespace HotelAPI.Models
 {
-    public class Agency
+    public class Agency : AuditableEntity
     {
         public int Id { get; set; }
         public string? AgencyName { get; set; }
 
-        // Foreign key to Country
         public int? CountryId { get; set; }
         public Country? Country { get; set; }
 
-        // Foreign key to City
         public int? CityId { get; set; }
         public City? City { get; set; }
 
@@ -30,11 +28,9 @@ namespace HotelAPI.Models
         public string? UserName { get; set; }
         public string? Password { get; set; }
         public bool AcceptTerms { get; set; }
-
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
         public bool IsActive { get; set; } = true;
-
         public string? Region { get; set; }
+        public string? SpecialRemarks { get; set; }
     }
+
 }
