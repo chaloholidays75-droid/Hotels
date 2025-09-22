@@ -21,7 +21,12 @@ namespace HotelAPI.Controllers
             _context = context;
             _mapper = mapper;
         }
-
+        // Add this debug endpoint to your HotelController
+        [HttpPatch("debug-test")]
+        public IActionResult DebugTest()
+        {
+            return Ok(new { message = "PATCH debug endpoint works!", timestamp = DateTime.UtcNow });
+        }
         // GET: api/hotels
         [Authorize(Roles = "Admin,Employee")]
         [HttpGet]
@@ -132,7 +137,7 @@ namespace HotelAPI.Controllers
 
             return NoContent();
         }
-        
+
         [HttpGet("test/{id}")]
         public async Task<ActionResult> TestHotelStatus(int id)
         {
