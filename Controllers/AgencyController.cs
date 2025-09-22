@@ -93,6 +93,7 @@ namespace AgencyManagementSystem.Controllers
                 UserName = dto.UserName,
                 Password = HashPassword(dto.Password),
                 AcceptTerms = dto.AcceptTerms,
+                SpecialRemarks = dto.SpecialRemarks,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
                 IsActive = true
@@ -124,6 +125,7 @@ namespace AgencyManagementSystem.Controllers
                 MobileNo = agency.MobileNo,
                 UserName = agency.UserName,
                 AcceptTerms = agency.AcceptTerms,
+                SpecialRemarks = agency.SpecialRemarks,
                 CreatedAt = agency.CreatedAt,
                 UpdatedAt = agency.UpdatedAt,
                 IsActive = agency.IsActive
@@ -170,6 +172,7 @@ namespace AgencyManagementSystem.Controllers
             existingAgency.Designation = agencyUpdate.Designation;
             existingAgency.MobileNo = agencyUpdate.MobileNo;
             existingAgency.UserName = agencyUpdate.UserName;
+            existingAgency.SpecialRemarks = agencyUpdate.SpecialRemarks;
             existingAgency.UpdatedAt = DateTime.UtcNow;
 
             if (!string.IsNullOrEmpty(agencyUpdate.Password))
@@ -200,21 +203,21 @@ namespace AgencyManagementSystem.Controllers
         // PATCH: api/agency/5/status (Admin only)
         [Authorize(Roles = "Admin")]
         [HttpPatch("{id}/status")]
-        public async Task<IActionResult> UpdateHotelStatus(int id, [FromBody] UpdateStatusDto dto)
+        public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateStatusDto dto)
         {
             try
             {
-                var hotel = await _context.HotelInfo.FindAsync(id);
-                if (hotel == null)
-                    return NotFound(new { message = "Hotel not found" });
+                var agency = await _context.Agencies.FindAsync(id);
+                if (agency == null)
+                    return NotFound(new { message = "Agency not found" });
 
-                hotel.IsActive = dto.IsActive;
-                hotel.UpdatedAt = DateTime.UtcNow;
+                agency.IsActive = dto.IsActive;
+                agency.UpdatedAt = DateTime.UtcNow;
 
-                _context.Entry(hotel).State = EntityState.Modified;
+                _context.Entry(agency).State = EntityState.Modified;
                 await _context.SaveChangesAsync();
 
-                return Ok(new { message = $"Hotel {(dto.IsActive ? "activated" : "deactivated")} successfully" });
+                return Ok(new { message = $"Agency {(dto.IsActive ? "activated" : "deactivated")} successfully" });
             }
             catch (Exception ex)
             {

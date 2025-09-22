@@ -24,5 +24,6 @@ namespace HotelAPI.Models.DTO
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
         public bool IsActive { get; set; }
+        public string? SpecialRemarks { get; set; }
     }
 }
