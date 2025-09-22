@@ -1,17 +1,22 @@
 using Microsoft.EntityFrameworkCore;
 using HotelAPI.Models;
+using HotelAPI.Filters;
 
 namespace HotelAPI.Data
 {
     public class AppDbContext : DbContext
     {
-        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+        private readonly ActivityLogger _activityLogger;
+        public AppDbContext(DbContextOptions<AppDbContext> options, ActivityLogger activityLogger) : base(options)
+        {
+             _activityLogger = activityLogger;
+        }
 
         public DbSet<HotelInfo> HotelInfo { get; set; } = null!;
         public DbSet<HotelStaff> HotelStaff { get; set; } = null!;
         public DbSet<Country> Countries { get; set; } = null!;
         public DbSet<City> Cities { get; set; } = null!;
-        
+
         public DbSet<User> Users { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<Agency> Agencies { get; set; }
@@ -68,7 +73,23 @@ namespace HotelAPI.Data
                 .HasForeignKey(h => h.CityId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            modelBuilder.Entity<RecentActivity>(entity =>
+            {
+                entity.ToTable("RecentActivities");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.UserName).HasMaxLength(100).IsRequired();
+                entity.Property(e => e.Action).HasMaxLength(100).IsRequired();
+                entity.Property(e => e.Entity).HasMaxLength(100);
+                entity.Property(e => e.IpAddress).HasMaxLength(50);
+                entity.Property(e => e.UserAgent).HasMaxLength(255);
+                entity.Property(e => e.Timestamp).HasDefaultValueSql("NOW()");
+            });
 
         }
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+            {
+                await _activityLogger.LogChangesAsync(ChangeTracker);
+                return await base.SaveChangesAsync(cancellationToken);
+            }
     }
 }

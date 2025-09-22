@@ -2,13 +2,17 @@ namespace HotelAPI.Models
 {
     public class RecentActivity
     {
-        public int Id { get; set; }
-        public string Username { get; set; } = "";
-        public string ActionType { get; set; } = ""; // Add, Edit, Delete
-        public string Entity { get; set; } = "";     // e.g. Agency, Hotel
-        public int EntityId { get; set; }
-        public string Description { get; set; } = "";
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public int Id { get; set; }              // SERIAL primary key
+        public int UserId { get; set; }          // Who performed the action
+        public string UserName { get; set; } = string.Empty;
+        public string Action { get; set; } = string.Empty; // e.g., CREATE, UPDATE
+        public string? Entity { get; set; }      // e.g., Hotel, Booking
+        public int? EntityId { get; set; }       // Id of affected entity
+        public string? Description { get; set; } // Optional details
+        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+        public string? IpAddress { get; set; }
+        public string? UserAgent { get; set; }
     }
+
 
 }

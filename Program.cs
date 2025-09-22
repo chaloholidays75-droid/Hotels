@@ -37,6 +37,9 @@ builder.Services.AddCors(options =>
                .AllowCredentials();
     });
 });
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();    // Logs will show in console
+builder.Logging.AddDebug();      // Logs will show in debug output
 
 // Configure PostgreSQL with connection string
 builder.Services.AddDbContext<AppDbContext>(options =>
