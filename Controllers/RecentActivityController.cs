@@ -75,3 +75,37 @@
 
 //     }
 // }
+using HotelAPI.Data;
+using HotelAPI.Models;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Threading.Tasks;
+using System.Linq;
+
+namespace HotelAPI.Controllers
+{
+    [ApiController]
+    [Route("api/recent")]
+    public class RecentActivitiesController : ControllerBase
+    {
+        private readonly AppDbContext _context;
+
+        public RecentActivitiesController(AppDbContext context)
+        {
+            _context = context;
+        }
+
+        // GET: api/RecentActivities
+        [HttpGet]
+        public async Task<IActionResult> GetRecentActivities(int page = 1, int pageSize = 20)
+        {
+            var activities = await _context.RecentActivities
+                .OrderByDescending(a => a.Timestamp)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return Ok(activities);
+        }
+    }
+}
