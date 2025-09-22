@@ -17,7 +17,16 @@ namespace HotelAPI.Controllers
         {
             _context = context;
         }
+        [HttpGet("list")]
+        
+            public async Task<IActionResult> GetRecentlistActivities()
+            {
+                var activities = await _context.RecentActivities
+                    .ToListAsync();
 
+                return Ok(activities);
+            }
+        
         // GET: api/recent?page=1&pageSize=20
         [HttpGet]
         public async Task<IActionResult> GetRecentActivities(int page = 1, int pageSize = 20)
