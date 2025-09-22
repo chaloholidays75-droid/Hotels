@@ -144,6 +144,7 @@ public async Task SendForgotPasswordEmailAsync(ForgotPasswordRequest request)
             {
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(ClaimTypes.Email, user.Email),
+            new Claim(ClaimTypes.Name, $"{user.FirstName} {user.LastName}"),
             new Claim(ClaimTypes.Role, user.Role),
             new Claim("FullName", $"{user.FirstName} {user.LastName}")
         };
