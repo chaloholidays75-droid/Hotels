@@ -29,7 +29,7 @@ namespace HotelAPI.Models
 
        
 
-        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? UpdatedAt { get; set; } = DateTime.UtcNow;
 
         // Navigation: Contacts / Staff
         public ICollection<HotelStaff> HotelStaff { get; set; } = new List<HotelStaff>();

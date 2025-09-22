@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace HotelAPI.Controllers
 {
-    [Authorize]
+    
     [Route("api/hotels")]
     [ApiController]
     public class HotelController : ControllerBase
@@ -132,7 +132,24 @@ namespace HotelAPI.Controllers
 
             return NoContent();
         }
+        
+        [HttpGet("test/{id}")]
+        public async Task<ActionResult> TestHotelStatus(int id)
+        {
+            // This directly reads from database
+            var hotel = await _context.HotelInfo
+                .FirstOrDefaultAsync(h => h.Id == id);
 
+            if (hotel == null)
+                return NotFound(new { message = "Hotel not found in database" });
+
+            return Ok(new { 
+                id = hotel.Id,
+                name = hotel.HotelName,
+                isActive = hotel.IsActive,
+                updatedAt = hotel.UpdatedAt
+            });
+        }
 
         // DELETE: api/hotels/{id} (Admin only, soft delete)
         [Authorize(Roles = "Admin")]
@@ -156,29 +173,30 @@ namespace HotelAPI.Controllers
             return NoContent();
         }
         // PATCH: api/hotels/{id}/status (Admin only)
+        
         [Authorize(Roles = "Admin")]
         [HttpPatch("{id}/status")]
         public async Task<IActionResult> UpdateHotelStatus(int id, [FromBody] HotelStatusDto statusDto)
         {
-            var hotel = await _context.HotelInfo.FindAsync(id);
+            var hotel = await _context.HotelInfo
+                .FirstOrDefaultAsync(h => h.Id == id);
+
             if (hotel == null)
                 return NotFound(new { message = "Hotel not found" });
 
             hotel.IsActive = statusDto.IsActive;
             hotel.UpdatedAt = DateTime.UtcNow;
 
-            // _context.HotelInfo.Update(hotel);
             await _context.SaveChangesAsync();
 
             return Ok(new { message = $"Hotel {(statusDto.IsActive ? "activated" : "deactivated")} successfully" });
         }
 
-        // Add this DTO class
+        // Add this DTO class if you don't have it
         public class HotelStatusDto
         {
             public bool IsActive { get; set; }
-        }
-        // GET: api/hotels/by-city/{cityId}
+        }        // GET: api/hotels/by-city/{cityId}
         [Authorize(Roles = "Admin,Employee")]
         [HttpGet("by-city/{cityId}")]
         public async Task<ActionResult<IEnumerable<HotelDto>>> GetHotelsByCity(int cityId)
