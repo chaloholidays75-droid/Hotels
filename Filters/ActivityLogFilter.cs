@@ -36,42 +36,50 @@ namespace HotelAPI.Filters
                 {
                     var entityName = resultContext.Controller.GetType().Name.Replace("Controller", "");
 
-                    // Get username from JWT
+                    // Get username and role from JWT claims
                     var userClaims = _httpContextAccessor.HttpContext?.User;
-                    string username = userClaims?.FindFirst("FullName")?.Value   // custom FullName claim
-                                      ?? userClaims?.FindFirst(ClaimTypes.Name)?.Value // Identity.Name fallback
-                                      ?? userClaims?.FindFirst(ClaimTypes.Email)?.Value // Email fallback
+                    string username = userClaims?.FindFirst("FullName")?.Value
+                                      ?? userClaims?.FindFirst(ClaimTypes.Name)?.Value
+                                      ?? userClaims?.FindFirst(ClaimTypes.Email)?.Value
                                       ?? "Unknown user";
+
+                    string role = userClaims?.FindFirst(ClaimTypes.Role)?.Value ?? "Unknown role";
 
                     int entityId = 0;
                     string entityLabel = "";
 
-                    // Extract entity info from action arguments
+                    // Try to extract entity info from action arguments
                     foreach (var arg in context.ActionArguments.Values)
                     {
-                        if (arg is HotelAPI.Models.Agency agency)
+                        var argType = arg?.GetType();
+                        if (arg == null) continue;
+
+                        // Check for Id property
+                        var idProp = argType.GetProperty("Id");
+                        if (idProp != null)
                         {
-                            entityId = agency.Id;
-                            entityLabel = agency.AgencyName;
+                            entityId = (int)(idProp.GetValue(arg) ?? 0);
                         }
-                        else if (arg is HotelAPI.Models.HotelInfo hotel)
+
+                        // Check for Name/Title/Label property
+                        var nameProp = argType.GetProperty("AgencyName") ?? 
+                                       argType.GetProperty("HotelName") ??
+                                       argType.GetProperty("Name") ??
+                                       argType.GetProperty("Title");
+                        if (nameProp != null)
                         {
-                            entityId = hotel.Id;
-                            entityLabel = hotel.HotelName;
-                        }
-                        else if (arg is int id)
-                        {
-                            entityId = id;
+                            entityLabel = nameProp.GetValue(arg)?.ToString() ?? "";
                         }
                     }
 
+                    // Create activity log
                     var log = new RecentActivity
                     {
                         Username = username,
                         ActionType = actionType,
                         Entity = entityName,
                         EntityId = entityId,
-                        Description = $"{username} {actionType.ToLower()} {entityName} \"{entityLabel}\"",
+                        Description = $"{username} ({role}) {actionType.ToLower()} {entityName} \"{entityLabel}\"",
                         CreatedAt = DateTime.UtcNow
                     };
 
