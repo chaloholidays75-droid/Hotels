@@ -188,27 +188,44 @@ public async Task<IActionResult> GetMonthlyStats([FromQuery] int months = 6)
             return StatusCode(500, $"Internal server error: {ex.Message}");
         }
     }
+     [HttpGet("recent-activities")]
+        public async Task<IActionResult> GetRecentActivities()
+        {
+            var activities = await _context.RecentActivities
+                .OrderByDescending(r => r.CreatedAt)
+                .Select(r => new {
+                    id = r.Id,
+                    user = r.Username,      // this is what your React app will use
+                    action = r.ActionType,
+                    type = r.Entity.ToLower(),
+                    name = r.Description,
+                    timestamp = r.CreatedAt
+                })
+                .ToListAsync();
+
+            return Ok(activities);
+        }
 
     private string GetTimeAgo(DateTime dateTime)
-    {
-        var timeSpan = DateTime.UtcNow - dateTime;
+        {
+            var timeSpan = DateTime.UtcNow - dateTime;
 
-        if (timeSpan <= TimeSpan.FromSeconds(60))
-            return $"{timeSpan.Seconds} seconds ago";
+            if (timeSpan <= TimeSpan.FromSeconds(60))
+                return $"{timeSpan.Seconds} seconds ago";
 
-        if (timeSpan <= TimeSpan.FromMinutes(60))
-            return $"{timeSpan.Minutes} minutes ago";
+            if (timeSpan <= TimeSpan.FromMinutes(60))
+                return $"{timeSpan.Minutes} minutes ago";
 
-        if (timeSpan <= TimeSpan.FromHours(24))
-            return $"{timeSpan.Hours} hours ago";
+            if (timeSpan <= TimeSpan.FromHours(24))
+                return $"{timeSpan.Hours} hours ago";
 
-        if (timeSpan <= TimeSpan.FromDays(30))
-            return $"{timeSpan.Days} days ago";
+            if (timeSpan <= TimeSpan.FromDays(30))
+                return $"{timeSpan.Days} days ago";
 
-        if (timeSpan <= TimeSpan.FromDays(365))
-            return $"{timeSpan.Days / 30} months ago";
+            if (timeSpan <= TimeSpan.FromDays(365))
+                return $"{timeSpan.Days / 30} months ago";
 
-        return $"{timeSpan.Days / 365} years ago";
-    }
+            return $"{timeSpan.Days / 365} years ago";
+        }
 }
 }
