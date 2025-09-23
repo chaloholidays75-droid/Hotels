@@ -220,7 +220,8 @@ namespace HotelAPI.Controllers
             hotel.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
-            return NoContent();
+            return Ok(new { message = "Hotel updated successfully" });
+
         }
 
         [HttpGet("test/{id}")]
@@ -260,7 +261,8 @@ namespace HotelAPI.Controllers
             _context.HotelInfo.Update(hotel);
             await _context.SaveChangesAsync();
 
-            return NoContent();
+            return Ok(new { message = "Hotel deleted successfully" });
+
         }
         // PATCH: api/hotels/{id}/status (Admin only)
         
