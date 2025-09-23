@@ -28,18 +28,103 @@ namespace HotelAPI.Controllers
             return Ok(new { message = "PATCH debug endpoint works!", timestamp = DateTime.UtcNow });
         }
         // GET: api/hotels
+        // [Authorize(Roles = "Admin,Employee")]
+        // [HttpGet]
+        // public async Task<ActionResult<IEnumerable<HotelDto>>> GetHotels()
+        // {
+        //     var hotels = await _context.HotelInfo
+                                       
+        //                                .Include(h => h.HotelStaff)
+        //                                .Include(h => h.City)
+        //                                .Include(h => h.Country)
+        //                                .ToListAsync();
+
+        //     return Ok(_mapper.Map<List<HotelDto>>(hotels));
+        // }
+        
         [Authorize(Roles = "Admin,Employee")]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<HotelDto>>> GetHotels()
         {
             var hotels = await _context.HotelInfo
-                                       
-                                       .Include(h => h.HotelStaff)
-                                       .Include(h => h.City)
-                                       .Include(h => h.Country)
-                                       .ToListAsync();
+                                    .Include(h => h.HotelStaff)
+                                    .Include(h => h.City)
+                                    .Include(h => h.Country)
+                                    .ToListAsync();
 
-            return Ok(_mapper.Map<List<HotelDto>>(hotels));
+            var hotelDtos = hotels.Select(h => new HotelDto
+            {
+                Id = h.Id,
+                HotelName = h.HotelName,
+                HotelEmail = h.HotelEmail,
+                HotelContactNumber = h.HotelContactNumber,
+                HotelChain = h.HotelChain,
+                Address = h.Address,
+                Region = h.Region,
+                SpecialRemarks = h.SpecialRemarks,
+                CityId = h.CityId,
+                CountryId = h.CountryId,
+                IsActive = h.IsActive,
+
+                // Map staff by roles
+                SalesPersons = h.HotelStaff
+                                .Where(s => s.Role == "Sales")
+                                .Select(s => new HotelStaffDto 
+                                {
+                                    Id = s.Id,
+                                    Role = s.Role,
+                                    Name = s.Name,
+                                    Email = s.Email,
+                                    Contact = s.Contact
+                                }).ToList(),
+
+                ReceptionPersons = h.HotelStaff
+                                    .Where(s => s.Role == "Reception")
+                                    .Select(s => new HotelStaffDto 
+                                    {
+                                        Id = s.Id,
+                                        Role = s.Role,
+                                        Name = s.Name,
+                                        Email = s.Email,
+                                        Contact = s.Contact
+                                    }).ToList(),
+
+                ReservationPersons = h.HotelStaff
+                                    .Where(s => s.Role == "Reservation")
+                                    .Select(s => new HotelStaffDto 
+                                    {
+                                        Id = s.Id,
+                                        Role = s.Role,
+                                        Name = s.Name,
+                                        Email = s.Email,
+                                        Contact = s.Contact
+                                    }).ToList(),
+
+                AccountsPersons = h.HotelStaff
+                                .Where(s => s.Role == "Accounts")
+                                .Select(s => new HotelStaffDto 
+                                {
+                                    Id = s.Id,
+                                    Role = s.Role,
+                                    Name = s.Name,
+                                    Email = s.Email,
+                                    Contact = s.Contact
+                                }).ToList(),
+
+                Concierges = h.HotelStaff
+                            .Where(s => s.Role == "Concierge")
+                            .Select(s => new HotelStaffDto 
+                            {
+                                Id = s.Id,
+                                Role = s.Role,
+                                Name = s.Name,
+                                Email = s.Email,
+                                Contact = s.Contact
+                            }).ToList(),
+
+            }).ToList();
+
+            return Ok(hotelDtos);
         }
 
         // GET: api/hotels/{id}
