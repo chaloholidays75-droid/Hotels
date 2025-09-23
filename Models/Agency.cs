@@ -31,6 +31,7 @@ namespace HotelAPI.Models
         public bool IsActive { get; set; } = true;
         public string? Region { get; set; }
         public string? SpecialRemarks { get; set; }
+        
     }
 
 }
