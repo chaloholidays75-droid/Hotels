@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using HotelAPI.Data;
 using HotelAPI.Models;
 using HotelAPI.Models.DTO;
@@ -16,7 +17,27 @@ namespace HotelAPI.Controllers
         {
             _context = context;
         }
-        
+
+        private async Task LogRecentActivityAsync(string entity, int entityId, string action, string description)
+        {
+            int userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "0");
+            string userName = User.FindFirstValue(ClaimTypes.Name) ?? "System";
+
+            var activity = new RecentActivity
+            {
+                UserId = userId,
+                UserName = userName,
+                Entity = entity,
+                EntityId = entityId,
+                Action = action,
+                Description = description,
+                Timestamp = DateTime.UtcNow
+            };
+
+            _context.RecentActivities.Add(activity);
+            await _context.SaveChangesAsync();
+            
+        }
 
         // GET: api/countries
         [HttpGet("countries")]
@@ -87,7 +108,7 @@ namespace HotelAPI.Controllers
 
             _context.Countries.Add(country);
             await _context.SaveChangesAsync();
-
+            await LogRecentActivityAsync("Country", country.Id, "CREATE", $"{country.Name} created");
             dto.Id = country.Id;
             return CreatedAtAction(nameof(GetCountry), new { id = country.Id }, dto);
         }
@@ -110,7 +131,9 @@ namespace HotelAPI.Controllers
             country.Code = dto.Code;
 
             await _context.SaveChangesAsync();
-            return NoContent();
+            await LogRecentActivityAsync("Country", country.Id, "UPDATE", $"{country.Name} updated");
+
+            return Ok(new { message = "Country updated successfully" });
         }
 
         // DELETE: api/countries/{id}
@@ -129,7 +152,9 @@ namespace HotelAPI.Controllers
 
             _context.Countries.Remove(country);
             await _context.SaveChangesAsync();
-            return NoContent();
+            await LogRecentActivityAsync("Country", country.Id, "DELETE", $"{country.Name} deleted");
+
+            return Ok(new { message = "Country deleted successfully" });
         }
 
         // GET: api/cities/by-country/{countryId}
@@ -172,6 +197,7 @@ namespace HotelAPI.Controllers
 
             _context.Cities.Add(city);
             await _context.SaveChangesAsync();
+            await LogRecentActivityAsync("City", city.Id, "CREATE", $"{city.Name} created in country ID {city.CountryId}");
 
             dto.Id = city.Id;
             return CreatedAtAction(nameof(GetCitiesByCountry), new { countryId = dto.CountryId }, dto);
@@ -195,7 +221,8 @@ namespace HotelAPI.Controllers
             city.CountryId = dto.CountryId;
 
             await _context.SaveChangesAsync();
-            return NoContent();
+            await LogRecentActivityAsync("City", city.Id, "UPDATE", $"{city.Name} updated in country ID {city.CountryId}");
+            return Ok(new { message = "City updated successfully" });
         }
 
         // DELETE: api/cities/{id}
@@ -213,7 +240,8 @@ namespace HotelAPI.Controllers
 
             _context.Cities.Remove(city);
             await _context.SaveChangesAsync();
-            return NoContent();
+            await LogRecentActivityAsync("City", city.Id, "DELETE", $"{city.Name} deleted from country ID {city.CountryId}");
+            return Ok(new { message = "City deleted successfully" });
         }
         // GET: api/stats
         [HttpGet("stats")]

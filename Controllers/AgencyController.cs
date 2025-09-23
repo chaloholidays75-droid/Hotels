@@ -10,6 +10,7 @@ using System.Net.Mail;
 using System.Net;
 using HotelAPI.Models.DTO;
 using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace AgencyManagementSystem.Controllers
 {
@@ -23,6 +24,26 @@ namespace AgencyManagementSystem.Controllers
         public AgencyController(AppDbContext context)
         {
             _context = context;
+        }
+
+        private async Task LogRecentActivityAsync(string entity, int entityId, string action, string description)
+        {
+            int userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "0"); 
+            string userName = User.FindFirstValue(ClaimTypes.Name) ?? "System";
+
+            var activity = new RecentActivity
+            {
+                UserId = userId,
+                UserName = userName,
+                Entity = entity,
+                EntityId = entityId,
+                Action = action,
+                Description = description,
+                Timestamp = DateTime.UtcNow
+            };
+
+            _context.RecentActivities.Add(activity);
+            await _context.SaveChangesAsync();
         }
 
         // GET: api/agency
@@ -101,7 +122,7 @@ namespace AgencyManagementSystem.Controllers
 
             _context.Agencies.Add(agency);
             await _context.SaveChangesAsync();
-
+            await LogRecentActivityAsync("Agency", agency.Id, "CREATE", $"{agency.AgencyName} created");
             // _ = SendWelcomeEmailAsync(agency.EmailId, agency.AgencyName);
 
             var responseDto = new AgencyRegistrationResponseDto
@@ -132,6 +153,7 @@ namespace AgencyManagementSystem.Controllers
             };
 
             return CreatedAtAction(nameof(GetAgency), new { id = agency.Id }, responseDto);
+
         }
 
         // PUT: api/agency/5 (Admin only)
@@ -179,11 +201,12 @@ namespace AgencyManagementSystem.Controllers
                 existingAgency.Password = HashPassword(agencyUpdate.Password);
 
             await _context.SaveChangesAsync();
+            await LogRecentActivityAsync("Agency", existingAgency.Id, "UPDATE", $"{existingAgency.AgencyName} updated");
             return Ok(new
-                {
-                    message = "Agency updated successfully",
-                    agency = existingAgency
-                });
+            {
+                message = "Agency updated successfully",
+                agency = existingAgency
+            });
         }
 
         // DELETE: api/agency/5 (Admin only)
@@ -200,8 +223,9 @@ namespace AgencyManagementSystem.Controllers
 
             _context.Entry(agency).State = EntityState.Modified;
             await _context.SaveChangesAsync();
+            await LogRecentActivityAsync("Agency", agency.Id, "DELETE", $"{agency.AgencyName} deactivated");
 
-            return NoContent();
+            return Ok(new { message = "Agency deactivated successfully" });
         }
 
         // PATCH: api/agency/5/status (Admin only)
@@ -220,7 +244,8 @@ namespace AgencyManagementSystem.Controllers
 
                 _context.Entry(agency).State = EntityState.Modified;
                 await _context.SaveChangesAsync();
-
+                await LogRecentActivityAsync("Agency", agency.Id, "STATUS UPDATE", $"{agency.AgencyName} status changed to {(agency.IsActive ? "Active" : "Inactive")}");
+                
                 return Ok(new { message = $"Agency {(dto.IsActive ? "activated" : "deactivated")} successfully" });
             }
             catch (Exception ex)
