@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace HotelAPI.Models
 {
-    public class HotelInfo
+    public class HotelInfo : AuditableEntity
     {
         public int Id { get; set; }
 
