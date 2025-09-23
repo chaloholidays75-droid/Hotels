@@ -103,71 +103,80 @@ namespace HotelAPI.Controllers
 
             return Ok(new { message = "Old RecentActivity records updated successfully!" });
         }
-              [HttpPost("backfill")]
-        public async Task<IActionResult> BackfillActivities()
+        [HttpPost("backfill")]
+public async Task<IActionResult> BackfillActivities()
+{
+    var users = await _context.Users.ToDictionaryAsync(u => u.Id, u => u.Email);
+
+    // Backfill Agencies
+    var agencies = await _context.Agencies.ToListAsync();
+    foreach (var agency in agencies)
+    {
+        if (agency.CreatedById.HasValue)
         {
-            // Clear old entries first (optional)
-            var existing = _context.RecentActivities;
-            _context.RecentActivities.RemoveRange(existing);
-            await _context.SaveChangesAsync();
-
-            // Load users dictionary
-            var users = await _context.Users
-                .Where(u => u.IsActive)
-                .ToDictionaryAsync(u => u.Id, u => u.Email); // or u.UserName if you prefer
-
-            // Backfill Agencies
-            var agencies = await _context.Agencies.ToListAsync();
-            foreach (var agency in agencies)
+            _context.RecentActivities.Add(new RecentActivity
             {
-                int? userId = agency.CreatedById ?? agency.UpdatedById;
-                string userName = userId.HasValue && users.ContainsKey(userId.Value)
-                    ? users[userId.Value]
-                    : "System";
-
-                var action = agency.CreatedAt <= agency.UpdatedAt ? "CREATE" : "UPDATE";
-
-                var activity = new RecentActivity
-                {
-                    UserId = userId ?? 0,
-                    UserName = userName,
-                    Action = action,
-                    Entity = "Agencies",
-                    EntityId = agency.Id,
-                    Description = $"{agency.AgencyName} {(action.ToLower())}d",
-                    Timestamp = agency.UpdatedAt
-                };
-
-                _context.RecentActivities.Add(activity);
-            }
-
-            // Backfill HotelInfo
-            var hotels = await _context.HotelInfo.ToListAsync();
-            foreach (var hotel in hotels)
-            {
-                int? userId = hotel.CreatedById ?? hotel.UpdatedById;
-                string userName = userId.HasValue && users.ContainsKey(userId.Value)
-                    ? users[userId.Value]
-                    : "System";
-
-                var action = hotel.CreatedAt <= (hotel.UpdatedAt ?? hotel.CreatedAt) ? "INSERT" : "UPDATE";
-
-                var activity = new RecentActivity
-                {
-                    UserId = userId ?? 0,
-                    UserName = userName,
-                    Action = action,
-                    Entity = "HotelInfo",
-                    EntityId = hotel.Id,
-                    Description = $"{hotel.HotelName} {(action.ToLower())}d",
-                    Timestamp = hotel.UpdatedAt ?? hotel.CreatedAt
-                };
-
-                _context.RecentActivities.Add(activity);
-            }
-
-            await _context.SaveChangesAsync();
-            return Ok(new { message = "Backfill completed successfully." });
+                UserId = agency.CreatedById.Value,
+                UserName = users.ContainsKey(agency.CreatedById.Value) ? users[agency.CreatedById.Value] : "Legacy User",
+                Action = "CREATE",
+                Entity = "Agencies",
+                EntityId = agency.Id,
+                Description = $"Agency {agency.AgencyName} existed before logging",
+                Timestamp = agency.CreatedAt
+            });
         }
+
+        if (agency.UpdatedById.HasValue && agency.UpdatedAt > agency.CreatedAt)
+        {
+            _context.RecentActivities.Add(new RecentActivity
+            {
+                UserId = agency.UpdatedById.Value,
+                UserName = users.ContainsKey(agency.UpdatedById.Value) ? users[agency.UpdatedById.Value] : "Legacy User",
+                Action = "UPDATE",
+                Entity = "Agencies",
+                EntityId = agency.Id,
+                Description = $"Agency {agency.AgencyName} updated before logging",
+                Timestamp = agency.UpdatedAt
+            });
+        }
+    }
+
+    // Backfill Hotels
+    var hotels = await _context.HotelInfo.ToListAsync();
+    foreach (var hotel in hotels)
+    {
+        if (hotel.CreatedById.HasValue)
+        {
+            _context.RecentActivities.Add(new RecentActivity
+            {
+                UserId = hotel.CreatedById.Value,
+                UserName = users.ContainsKey(hotel.CreatedById.Value) ? users[hotel.CreatedById.Value] : "Legacy User",
+                Action = "CREATE",
+                Entity = "HotelInfo",
+                EntityId = hotel.Id,
+                Description = $"Hotel {hotel.HotelName} existed before logging",
+                Timestamp = hotel.CreatedAt
+            });
+        }
+
+        if (hotel.UpdatedById.HasValue && hotel.UpdatedAt > hotel.CreatedAt)
+        {
+            _context.RecentActivities.Add(new RecentActivity
+            {
+                UserId = hotel.UpdatedById.Value,
+                UserName = users.ContainsKey(hotel.UpdatedById.Value) ? users[hotel.UpdatedById.Value] : "Legacy User",
+                Action = "UPDATE",
+                Entity = "HotelInfo",
+                EntityId = hotel.Id,
+                Description = $"Hotel {hotel.HotelName} updated before logging",
+                Timestamp = hotel.UpdatedAt ?? DateTime.UtcNow
+            });
+        }
+    }
+
+    await _context.SaveChangesAsync();
+    return Ok(new { message = "Backfill completed successfully!" });
+}
+
     }
 }
