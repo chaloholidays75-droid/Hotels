@@ -140,7 +140,7 @@ namespace AgencyManagementSystem.Controllers
         public async Task<IActionResult> UpdateAgency(int id, [FromBody] Agency agencyUpdate)
         {
             if (id != agencyUpdate.Id)
-                return BadRequest(new { message = "ID mismatch" });
+                return BadRequest(new { message = "ID mismatch ho rahi hai " });
 
             var existingAgency = await _context.Agencies.FindAsync(id);
             if (existingAgency == null || !existingAgency.IsActive)
