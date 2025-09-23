@@ -1,15 +1,16 @@
 using Microsoft.EntityFrameworkCore;
 using HotelAPI.Models;
 using HotelAPI.Filters;
+using HotelAPI.Services;
 
 namespace HotelAPI.Data
 {
     public class AppDbContext : DbContext
     {
-        private readonly ActivityLogFilter _activityLogger;
-        public AppDbContext(DbContextOptions<AppDbContext> options, ActivityLogFilter activityLogger) : base(options)
+        private readonly IActivityLoggerService _activityLogger;
+        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
         {
-             _activityLogger = activityLogger;
+      
         }
 
         public DbSet<HotelInfo> HotelInfo { get; set; } = null!;
@@ -86,10 +87,6 @@ namespace HotelAPI.Data
             });
 
         }
-        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-            {
-                await _activityLogger.LogChangesAsync(ChangeTracker);
-                return await base.SaveChangesAsync(cancellationToken);
-            }
+
     }
 }
