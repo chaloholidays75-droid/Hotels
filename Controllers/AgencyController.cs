@@ -179,7 +179,11 @@ namespace AgencyManagementSystem.Controllers
                 existingAgency.Password = HashPassword(agencyUpdate.Password);
 
             await _context.SaveChangesAsync();
-            return NoContent();
+            return Ok(new
+                {
+                    message = "Agency updated successfully",
+                    agency = existingAgency
+                });
         }
 
         // DELETE: api/agency/5 (Admin only)
