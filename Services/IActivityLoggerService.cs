@@ -1,11 +1,11 @@
-using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace HotelAPI.Services
 {
     public interface IActivityLoggerService
     {
-        Task LogAsync(string action, string entity, int? entityId, string? description);
         Task LogChangesAsync(ChangeTracker changeTracker, int userId, string userName);
     }
 }
