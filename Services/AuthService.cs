@@ -31,34 +31,41 @@ namespace HotelAPI.Services
             _emailSettings = emailSettings.Value;
         }
 
-    public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
+public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
+{
+    if (_context.Users.Any(u => u.Email == request.Email))
+        throw new Exception("Email already exists");
+
+    // Ensure Role is set from request, otherwise throw
+    if (string.IsNullOrWhiteSpace(request.Role))
+        throw new Exception("Role is required");
+
+    string hashedPassword = BCrypt.Net.BCrypt.HashPassword(request.Password);
+
+    var user = new User
     {
-        if (_context.Users.Any(u => u.Email == request.Email))
-            throw new Exception("Email already exists");
-            string hashedPassword = BCrypt.Net.BCrypt.HashPassword(request.Password);
-            var user = new User
-                {
-                    Email = request.Email,
-                    PasswordHash = hashedPassword,
-                    FirstName = request.FirstName,
-                    LastName = request.LastName,
-                    Role = request.Role ?? throw new Exception("Role is required"),
-                    IsActive = true,
-                    CreatedAt = DateTime.UtcNow
-                };
-        Console.WriteLine($"Saving user with Role='{user.Role}'");
-        _logger.LogInformation("Saving user with Role='{Role}'", user.Role);
+        Email = request.Email,
+        PasswordHash = hashedPassword,
+        FirstName = request.FirstName,
+        LastName = request.LastName,
+        Role = request.Role.Trim(),  // Use exactly what comes from request
+        IsActive = true,
+        CreatedAt = DateTime.UtcNow
+    };
 
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
+    // Debug log to confirm
+    Console.WriteLine($"[Register] Saving user: Email={user.Email}, Role={user.Role}");
 
-        var authResponse = await GenerateTokensAsync(user);
+    _context.Users.Add(user);
+    await _context.SaveChangesAsync();
 
-        await SendEmailAsync(user.Email, "Registration Successful", 
-            $"Welcome {user.FirstName}! Your account is registered as {user.Role}  role .") ;
-         _logger.LogInformation("Register payload: {@Request}", request);
-        return authResponse;
-    }
+    var authResponse = await GenerateTokensAsync(user);
+
+    // await SendEmailAsync(user.Email, "Registration Successful",
+    //     $"Welcome {user.FirstName}! Your account is registered as {user.Role}.");
+
+    return authResponse;
+}
 
         public async Task<AuthResponse> LoginAsync(LoginRequest request)
         {
