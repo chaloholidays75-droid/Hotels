@@ -18,6 +18,9 @@ builder.Services.AddControllers(options =>
     // Apply ActivityLogFilter globally
     // options.Filters.Add<ActivityLogFilter>();
 });
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+
 
 // Register HttpContextAccessor for ActivityLogFilter
 builder.Services.AddHttpContextAccessor();
