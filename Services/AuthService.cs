@@ -146,7 +146,11 @@ public async Task SendForgotPasswordEmailAsync(ForgotPasswordRequest request)
             new Claim(ClaimTypes.Email, user.Email),
             new Claim(ClaimTypes.Name, $"{user.FirstName} {user.LastName}"),
             new Claim(ClaimTypes.Role, user.Role),
-            new Claim("FullName", $"{user.FirstName} {user.LastName}")
+            new Claim("FullName", $"{user.FirstName} {user.LastName}"),
+
+            new Claim("id", user.Id.ToString()),
+            new Claim("firstName", user.FirstName ?? ""),
+            new Claim("lastName", user.LastName ?? "")
         };
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key));
