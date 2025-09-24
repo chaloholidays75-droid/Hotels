@@ -8,6 +8,7 @@ namespace HotelAPI.Services
         Task SendForgotPasswordEmailAsync(ForgotPasswordRequest request);
         Task ResetPasswordAsync(ResetPasswordRequest request);
         Task<AuthResponse> RefreshTokenAsync(RefreshTokenRequest request);
+        Task LogoutAsync(LogoutRequest request);    
         Task SendEmailAsync(string toEmail, string subject, string body);
     }
 }

@@ -62,6 +62,13 @@ namespace HotelAPI.Controllers
             var response = await _authService.RefreshTokenAsync(request);
             return Ok(response);
         }
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout([FromBody] LogoutRequest request)
+        {
+            await _authService.LogoutAsync(request);
+            return Ok(new { message = "Logged out successfully" });
+        }
+
 
         // Example protected route to show logged-in user
         [HttpGet("me")]
