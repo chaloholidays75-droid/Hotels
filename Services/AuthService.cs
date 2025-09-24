@@ -34,7 +34,9 @@ namespace HotelAPI.Services
             throw new Exception("Email already exists");
 
         // Ensure role is valid: only Admin or Employee (default to Employee)
-        var role = string.IsNullOrWhiteSpace(request.Role) ? "Employee" : request.Role;
+        var role = request.Role?.Trim();
+        if (role != "Admin" && role != "Employee")
+            role = "User"; // fallback
 
         var user = new User
         {
