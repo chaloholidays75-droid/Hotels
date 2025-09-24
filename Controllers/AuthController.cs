@@ -16,6 +16,17 @@ namespace HotelAPI.Controllers
         {
             _authService = authService;
         }
+        [HttpGet("whoami")]
+        public IActionResult WhoAmI()
+        {
+            return Ok(new
+            {
+                Id = User.FindFirstValue("id"),
+                FirstName = User.FindFirstValue("firstName"),
+                LastName = User.FindFirstValue("lastName"),
+                Name = User.FindFirstValue(ClaimTypes.Name)
+            });
+        }
 
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterRequest request)
