@@ -36,8 +36,7 @@ namespace HotelAPI.Services
             var user = new User
             {
                 Email = request.Email,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password)
-    ,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
                 FirstName = request.FirstName,
                 LastName = request.LastName,
                 Role = request.Role ?? "User"
