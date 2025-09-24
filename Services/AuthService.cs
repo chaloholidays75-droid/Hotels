@@ -28,29 +28,33 @@ namespace HotelAPI.Services
             _emailSettings = emailSettings.Value;
         }
 
-        public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
+    public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
+    {
+        if (_context.Users.Any(u => u.Email == request.Email))
+            throw new Exception("Email already exists");
+
+        // Ensure role is valid: only Admin or Employee (default to Employee)
+        var role = string.IsNullOrWhiteSpace(request.Role) ? "Employee" : request.Role;
+
+        var user = new User
         {
-            if (_context.Users.Any(u => u.Email == request.Email))
-                throw new Exception("Email already exists");
+            Email = request.Email,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+            FirstName = request.FirstName,
+            LastName = request.LastName,
+            Role =  string.IsNullOrWhiteSpace(request.Role) ? "Employee" : request.Role
+        };
 
-            var user = new User
-            {
-                Email = request.Email,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
-                FirstName = request.FirstName,
-                LastName = request.LastName,
-                Role = request.Role ?? "User"
-            };
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
 
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
+        var authResponse = await GenerateTokensAsync(user);
 
-            var authResponse = await GenerateTokensAsync(user);
+        await SendEmailAsync(user.Email, "Registration Successful", 
+            $"Welcome {user.FirstName}! Your account is registered as {user.Role}.");
 
-            await SendEmailAsync(user.Email, "Registration Successful", $"Welcome {user.FirstName}! Your account is registered.");
-
-            return authResponse;
-        }
+        return authResponse;
+    }
 
         public async Task<AuthResponse> LoginAsync(LoginRequest request)
         {
