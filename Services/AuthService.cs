@@ -83,8 +83,9 @@ namespace HotelAPI.Services
         public async Task LogoutAsync(LogoutRequest request)
         {
             if (string.IsNullOrEmpty(request.RefreshToken))
-                return; // nothing to revoke
+                throw new Exception("Refresh token is required");
 
+            // Find the refresh token
             var refreshToken = await _context.RefreshTokens
                 .SingleOrDefaultAsync(rt => rt.Token == request.RefreshToken && !rt.IsRevoked);
 
@@ -94,6 +95,7 @@ namespace HotelAPI.Services
                 await _context.SaveChangesAsync();
             }
         }
+
 
         private static string Base64UrlEncode(byte[] input)
         {

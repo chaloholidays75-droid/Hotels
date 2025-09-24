@@ -86,12 +86,21 @@ public async Task<IActionResult> Register([FromBody] RegisterRequest request)
             var response = await _authService.RefreshTokenAsync(request);
             return Ok(response);
         }
+        
         [HttpPost("logout")]
         public async Task<IActionResult> Logout([FromBody] LogoutRequest request)
         {
-            await _authService.LogoutAsync(request);
-            return Ok(new { message = "Logged out successfully" });
+            try
+            {
+                await _authService.LogoutAsync(request);
+                return Ok(new { message = "Logged out successfully" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
+
 
 
         // Example protected route to show logged-in user
