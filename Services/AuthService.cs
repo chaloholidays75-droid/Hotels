@@ -21,11 +21,13 @@ namespace HotelAPI.Services
         private readonly AppDbContext _context;
         private readonly JwtSettings _jwtSettings;
         private readonly EmailSettings _emailSettings;
+        private readonly ILogger<AuthService> _logger; 
 
-        public AuthService(AppDbContext context, IOptions<JwtSettings> jwtSettings, IOptions<EmailSettings> emailSettings)
+        public AuthService(AppDbContext context, IOptions<JwtSettings> jwtSettings, IOptions<EmailSettings> emailSettings, ILogger<AuthService> logger)
         {
             _context = context;
             _jwtSettings = jwtSettings.Value;
+            _logger = logger;
             _emailSettings = emailSettings.Value;
         }
 
@@ -53,7 +55,7 @@ namespace HotelAPI.Services
 
         await SendEmailAsync(user.Email, "Registration Successful", 
             $"Welcome {user.FirstName}! Your account is registered as {user.Role}  role .") ;
-
+         _logger.LogInformation("Register payload: {@Request}", request);
         return authResponse;
     }
 
