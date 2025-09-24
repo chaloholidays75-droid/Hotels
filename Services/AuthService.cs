@@ -40,7 +40,7 @@ namespace HotelAPI.Services
                     PasswordHash = hashedPassword,
                     FirstName = request.FirstName,
                     LastName = request.LastName,
-                    Role = string.IsNullOrEmpty(request.Role) ? "Employee" : request.Role, // default to Employee
+                    Role = request.Role ?? throw new Exception("Role is required"),
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow
                 };
