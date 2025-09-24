@@ -40,7 +40,7 @@ namespace HotelAPI.Services
     ,
                 FirstName = request.FirstName,
                 LastName = request.LastName,
-                Role = "Employee"
+                Role = request.Role ?? "User"
             };
 
             _context.Users.Add(user);

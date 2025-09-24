@@ -6,6 +6,7 @@ using HotelAPI.Models.DTO;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
+using HotelAPI.Services;
 
 namespace HotelAPI.Controllers
 {
@@ -16,9 +17,11 @@ namespace HotelAPI.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IMapper _mapper;
+        private readonly IActivityLoggerService _activityLogger;
 
-        public HotelController(AppDbContext context, IMapper mapper)
+        public HotelController(AppDbContext context, IMapper mapper , IActivityLoggerService activityLogger)
         {
+            _activityLogger = activityLogger;
             _context = context;
             _mapper = mapper;
         }
