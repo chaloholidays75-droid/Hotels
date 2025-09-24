@@ -82,6 +82,21 @@ namespace HotelAPI.Services
 
             return authResponse;
         }
+        public async Task LogoutAsync(LogoutRequest request)
+        {
+            if (string.IsNullOrEmpty(request.RefreshToken))
+                return; // nothing to revoke
+
+            var refreshToken = await _context.RefreshTokens
+                .SingleOrDefaultAsync(rt => rt.Token == request.RefreshToken && !rt.IsRevoked);
+
+            if (refreshToken != null)
+            {
+                refreshToken.IsRevoked = true;
+                await _context.SaveChangesAsync();
+            }
+        }
+
         private static string Base64UrlEncode(byte[] input)
         {
             return Convert.ToBase64String(input)
