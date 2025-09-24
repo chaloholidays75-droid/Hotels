@@ -56,7 +56,7 @@ public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
     // Debug log to confirm
     Console.WriteLine($"[Register] Saving user: Email={user.Email}, Role={user.Role}");
 
-    _context.Users.Add(user);
+            _context.Users.Add(user);
     await _context.SaveChangesAsync();
 
     var authResponse = await GenerateTokensAsync(user);
