@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using HotelAPI.Services;
-using HotelAPI.Filters;
+// using HotelAPI.Filters;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,7 +16,7 @@ builder.Services.AddAutoMapper(typeof(Program)); // Or specify a profile class
 builder.Services.AddControllers(options =>
 {
     // Apply ActivityLogFilter globally
-    options.Filters.Add<ActivityLogFilter>();
+    // options.Filters.Add<ActivityLogFilter>();
 });
 
 // Register HttpContextAccessor for ActivityLogFilter
@@ -51,8 +51,8 @@ builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("Emai
 
 // Register services
 builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IActivityLoggerService, ActivityLoggerService>();
-builder.Services.AddScoped<ActivityLogFilter>(); // Filter depends on logger
+// builder.Services.AddScoped<IActivityLoggerService, ActivityLoggerService>();
+// builder.Services.AddScoped<ActivityLogFilter>(); // Filter depends on logger
 
 // Configure JWT Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

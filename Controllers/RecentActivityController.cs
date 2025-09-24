@@ -33,24 +33,25 @@ namespace HotelAPI.Controllers
         }
 
         // POST: api/recent/log
-        [HttpPost("log")]
-        public async Task<IActionResult> LogActivity([FromBody] RecentActivity activity)
-        {
-            // Get UserId and UserName from JWT
-            int userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "0");
-            string userName = User.FindFirstValue(ClaimTypes.Name) ?? "System";
+        // [HttpPost("log")]
+        // public async Task<IActionResult> LogActivity([FromBody] RecentActivity activity)
+        // {
+        //     // Get UserId and UserName from JWT
+        //     int userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "0");
+        //     string userName = User.FindFirstValue(ClaimTypes.Name) ?? "System";
 
-            activity.UserId = userId;
-            activity.UserName = userName;
-            activity.Timestamp = System.DateTime.UtcNow;
+        //     activity.UserId = userId;
+        //     activity.UserName = userName;
+        //     activity.Timestamp = System.DateTime.UtcNow;
 
-            _context.RecentActivities.Add(activity);
-            await _context.SaveChangesAsync();
+        //     _context.RecentActivities.Add(activity);
+        //     await _context.SaveChangesAsync();
 
-            return Ok(new { message = "Activity logged successfully!" });
-        }
+        //     return Ok(new { message = "Activity logged successfully!" });
+        // }
 
         // Helper method for automatic logging
+        [HttpPost("log")]
         public async Task LogActionAsync(string entity, int entityId, string action, string description)
         {
             int userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "0");

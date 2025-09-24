@@ -32,6 +32,7 @@
 //         }
 //     }
 // }
+using HotelAPI.Data;
 using HotelAPI.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Filters;
@@ -55,13 +56,25 @@ namespace HotelAPI.Filters
         {
             var executedContext = await next();
 
-            var user = _httpContextAccessor.HttpContext?.User;
-            int userId = user != null && int.TryParse(user.FindFirst("id")?.Value, out var id) ? id : 0;
-            string userName = user?.Identity?.Name ?? "System";
-
-            if (executedContext.HttpContext.RequestServices.GetService(typeof(DbContext)) is DbContext db)
+   try
             {
-                await _logger.LogChangesAsync(db.ChangeTracker, userId, userName);
+                var httpContext = _httpContextAccessor.HttpContext;
+                var user = httpContext?.User;
+
+                // Extract user info from claims (default to 0/System if not logged in)
+                int userId = user != null && int.TryParse(user.FindFirst("id")?.Value, out var id) ? id : 0;
+                string userName = user?.Identity?.Name ?? "System";
+
+                // Get DbContext from DI
+                if (executedContext.HttpContext.RequestServices.GetService(typeof(AppDbContext)) is AppDbContext db)
+                {
+                    await _logger.LogChangesAsync(db.ChangeTracker, userId, userName);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Don’t let logging failures break the request
+                Console.WriteLine($"[ActivityLogFilter] Logging failed: {ex.Message}");
             }
         }
     }
