@@ -10,6 +10,7 @@ using MimeKit;
 using HotelAPI.Models.DTO;
 using HotelAPI.Data;
 using HotelAPI.Models;
+using BCrypt.Net;
 using HotelAPI.Settings;
 using Microsoft.EntityFrameworkCore;
 namespace HotelAPI.Services
@@ -32,20 +33,17 @@ namespace HotelAPI.Services
     {
         if (_context.Users.Any(u => u.Email == request.Email))
             throw new Exception("Email already exists");
-
-        // Ensure role is valid: only Admin or Employee (default to Employee)
-        var role = request.Role?.Trim();
-        if (role != "Admin" && role != "Employee")
-            role = "User"; // fallback
-
-        var user = new User
-        {
-            Email = request.Email,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
-            FirstName = request.FirstName,
-            LastName = request.LastName,
-            Role =  role
-        };
+            string hashedPassword = BCrypt.Net.BCrypt.HashPassword(request.Password);
+            var user = new User
+                {
+                    Email = request.Email,
+                    PasswordHash = hashedPassword,
+                    FirstName = request.FirstName,
+                    LastName = request.LastName,
+                    Role = string.IsNullOrEmpty(request.Role) ? "Employee" : request.Role, // default to Employee
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                };
         Console.WriteLine($"Saving user with Role='{user.Role}'");
 
         _context.Users.Add(user);

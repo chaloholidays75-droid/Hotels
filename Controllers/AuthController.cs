@@ -28,12 +28,36 @@ namespace HotelAPI.Controllers
             });
         }
 
+        // [HttpPost("register")]
+        // public async Task<IActionResult> Register([FromBody] RegisterRequest request)
+        // {
+        //     var response = await _authService.RegisterAsync(request);
+        //     return Ok(response);
+        // }
         [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] RegisterRequest request)
-        {
-            var response = await _authService.RegisterAsync(request);
-            return Ok(response);
-        }
+public async Task<IActionResult> Register([FromBody] RegisterRequest request)
+{
+    try
+    {
+        var authResponse = await _authService.RegisterAsync(request);
+
+    return Ok(new
+    {
+        authResponse.User?.Id,
+        authResponse.User?.Email,
+        authResponse.User?.FirstName,
+        authResponse.User?.LastName,
+        authResponse.User?.Role,
+        authResponse.AccessToken,
+        authResponse.RefreshToken
+    });
+    }
+    catch (Exception ex)
+    {
+        return BadRequest(new { message = ex.Message });
+    }
+}
+
 
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
