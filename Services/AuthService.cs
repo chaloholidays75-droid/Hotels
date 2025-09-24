@@ -46,6 +46,7 @@ namespace HotelAPI.Services
             LastName = request.LastName,
             Role =  role
         };
+        Console.WriteLine($"Saving user with Role='{user.Role}'");
 
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
