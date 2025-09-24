@@ -1,13 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using HotelAPI.Models;
-using HotelAPI.Filters;
 using HotelAPI.Services;
 
 namespace HotelAPI.Data
 {
     public class AppDbContext : DbContext
     {
-        private readonly IActivityLoggerService _activityLogger;
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
         {
       

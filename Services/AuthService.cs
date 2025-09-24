@@ -52,7 +52,7 @@ namespace HotelAPI.Services
         var authResponse = await GenerateTokensAsync(user);
 
         await SendEmailAsync(user.Email, "Registration Successful", 
-            $"Welcome {user.FirstName}! Your account is registered as {user.Role}.");
+            $"Welcome {user.FirstName}! Your account is registered as {user.Role}  role .") ;
 
         return authResponse;
     }
