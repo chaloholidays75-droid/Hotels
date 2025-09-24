@@ -42,7 +42,7 @@ namespace HotelAPI.Services
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
             FirstName = request.FirstName,
             LastName = request.LastName,
-            Role =  string.IsNullOrWhiteSpace(request.Role) ? "Employee" : request.Role
+            Role =  role
         };
 
         _context.Users.Add(user);
