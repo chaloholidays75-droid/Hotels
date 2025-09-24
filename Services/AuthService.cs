@@ -47,6 +47,7 @@ namespace HotelAPI.Services
                     CreatedAt = DateTime.UtcNow
                 };
         Console.WriteLine($"Saving user with Role='{user.Role}'");
+        _logger.LogInformation("Saving user with Role='{Role}'", user.Role);
 
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
