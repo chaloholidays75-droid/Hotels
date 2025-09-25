@@ -61,7 +61,8 @@ namespace HotelAPI.Services
 
             // Debug log to confirm
             Console.WriteLine($"[Register] Saving user: Email={user.Email}, Role={user.Role}");
-
+            
+            
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
