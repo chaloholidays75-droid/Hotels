@@ -54,7 +54,7 @@ builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("Emai
 
 // Register services
 builder.Services.AddScoped<IAuthService, AuthService>();
-// builder.Services.AddScoped<IActivityLoggerService, ActivityLoggerService>();
+builder.Services.AddScoped<IActivityLoggerService, ActivityLoggerService>();
 // builder.Services.AddScoped<ActivityLogFilter>(); // Filter depends on logger
 
 // Configure JWT Authentication
@@ -101,6 +101,13 @@ app.MapControllers();
 // Simple health-check endpoint
 app.MapGet("/", () => "Hotel API is running ✅");
 app.MapGet("/api/test", () => "API works!");
+var routeEndpoints = app.Services.GetRequiredService<Microsoft.AspNetCore.Routing.EndpointDataSource>()
+                        .Endpoints;
+
+foreach (var endpoint in routeEndpoints)
+{
+    Console.WriteLine(endpoint.DisplayName);
+}
 
 
 app.Run();
