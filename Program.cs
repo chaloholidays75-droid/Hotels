@@ -54,7 +54,7 @@ builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("Emai
 
 // Register services
 builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IActivityLoggerService, ActivityLoggerService>();
+builder.Services.AddScoped<IActivityLoggerService, ActivityLoggerService>(); // i added this line
 // builder.Services.AddScoped<ActivityLogFilter>(); // Filter depends on logger
 
 // Configure JWT Authentication
