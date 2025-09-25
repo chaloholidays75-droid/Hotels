@@ -100,5 +100,7 @@ app.MapControllers();
 
 // Simple health-check endpoint
 app.MapGet("/", () => "Hotel API is running ✅");
+app.MapGet("/api/test", () => "API works!");
+
 
 app.Run();
