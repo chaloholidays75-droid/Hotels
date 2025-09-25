@@ -42,6 +42,7 @@ namespace HotelAPI.Services
 
             string hashedPassword = BCrypt.Net.BCrypt.HashPassword(request.Password);
 
+
             var user = new User
             {
                 Email = request.Email,
@@ -52,6 +53,11 @@ namespace HotelAPI.Services
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow
             };
+
+            if (string.IsNullOrEmpty(user.Email))
+            {
+                throw new InvalidOperationException("User does not have a valid email address.");
+            }
 
             // Debug log to confirm
             Console.WriteLine($"[Register] Saving user: Email={user.Email}, Role={user.Role}");
