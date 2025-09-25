@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using HotelAPI.Data;
 using HotelAPI.Models.DTO;
 using HotelAPI.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -11,11 +12,14 @@ namespace HotelAPI.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
+        private readonly AppDbContext _context;
 
-        public AuthController(IAuthService authService)
+        public AuthController(IAuthService authService, AppDbContext context)
         {
             _authService = authService;
+            _context = context;
         }
+ 
         [HttpGet("whoami")]
         public IActionResult WhoAmI()
         {
@@ -27,7 +31,12 @@ namespace HotelAPI.Controllers
                 Name = User.FindFirstValue(ClaimTypes.Name)
             });
         }
-
+        [HttpGet]
+        public Task<IActionResult> GetAllUsers()
+        {
+            var users = _context.Users.ToList();
+            return Task.FromResult<IActionResult>(Ok(users));
+        }
         // [HttpPost("register")]
         // public async Task<IActionResult> Register([FromBody] RegisterRequest request)
         // {
@@ -86,7 +95,7 @@ public async Task<IActionResult> Register([FromBody] RegisterRequest request)
             var response = await _authService.RefreshTokenAsync(request);
             return Ok(response);
         }
-        
+
         [HttpPost("logout")]
         public async Task<IActionResult> Logout([FromBody] LogoutRequest request)
         {

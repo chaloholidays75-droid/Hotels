@@ -21,7 +21,7 @@ namespace HotelAPI.Services
         private readonly AppDbContext _context;
         private readonly JwtSettings _jwtSettings;
         private readonly EmailSettings _emailSettings;
-        private readonly ILogger<AuthService> _logger; 
+        private readonly ILogger<AuthService> _logger;
 
         public AuthService(AppDbContext context, IOptions<JwtSettings> jwtSettings, IOptions<EmailSettings> emailSettings, ILogger<AuthService> logger)
         {
@@ -31,47 +31,49 @@ namespace HotelAPI.Services
             _emailSettings = emailSettings.Value;
         }
 
-public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
-{
-    if (_context.Users.Any(u => u.Email == request.Email))
-        throw new Exception("Email already exists");
+        public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
+        {
+            if (_context.Users.Any(u => u.Email == request.Email))
+                throw new Exception("Email already exists");
 
-    // Ensure Role is set from request, otherwise throw
-    if (string.IsNullOrWhiteSpace(request.Role))
-        throw new Exception("Role is required");
+            // Ensure Role is set from request, otherwise throw
+            if (string.IsNullOrWhiteSpace(request.Role))
+                throw new Exception("Role is required");
 
-    string hashedPassword = BCrypt.Net.BCrypt.HashPassword(request.Password);
+            string hashedPassword = BCrypt.Net.BCrypt.HashPassword(request.Password);
 
-    var user = new User
-    {
-        Email = request.Email,
-        PasswordHash = hashedPassword,
-        FirstName = request.FirstName,
-        LastName = request.LastName,
-        Role = request.Role.Trim(),  // Use exactly what comes from request
-        IsActive = true,
-        CreatedAt = DateTime.UtcNow
-    };
+            var user = new User
+            {
+                Email = request.Email,
+                PasswordHash = hashedPassword,
+                FirstName = request.FirstName,
+                LastName = request.LastName,
+                Role = request.Role.Trim(),  // Use exactly what comes from request
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
 
-    // Debug log to confirm
-    Console.WriteLine($"[Register] Saving user: Email={user.Email}, Role={user.Role}");
+            // Debug log to confirm
+            Console.WriteLine($"[Register] Saving user: Email={user.Email}, Role={user.Role}");
 
             _context.Users.Add(user);
-    await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
 
-    var authResponse = await GenerateTokensAsync(user);
+            var authResponse = await GenerateTokensAsync(user);
 
-    // await SendEmailAsync(user.Email, "Registration Successful",
-    //     $"Welcome {user.FirstName}! Your account is registered as {user.Role}.");
+            await SendEmailAsync(user.Email, "Registration Successful",
+                $"Welcome {user.FirstName}! Your account is registered as {user.Role}.");
 
-    return authResponse;
-}
+            return authResponse;
+        }
+
+
 
         public async Task<AuthResponse> LoginAsync(LoginRequest request)
         {
-            var user =await _context.Users
+            var user = await _context.Users
             .Where(u => u.Email == request.Email)
-            .Select(u => new User 
+            .Select(u => new User
             {
                 Id = u.Id,
                 Email = u.Email,
@@ -127,26 +129,26 @@ public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
         }
 
 
-public async Task SendForgotPasswordEmailAsync(ForgotPasswordRequest request)
-{
-    var user = await _context.Users.SingleOrDefaultAsync(u => u.Email == request.Email);
-    if (user == null) return; // Silent fail for security
+        public async Task SendForgotPasswordEmailAsync(ForgotPasswordRequest request)
+        {
+            var user = await _context.Users.SingleOrDefaultAsync(u => u.Email == request.Email);
+            if (user == null) return; // Silent fail for security
 
-    var tokenBytes = RandomNumberGenerator.GetBytes(32);
-    var token = Base64UrlEncode(tokenBytes);
+            var tokenBytes = RandomNumberGenerator.GetBytes(32);
+            var token = Base64UrlEncode(tokenBytes);
 
-    user.ResetPasswordToken = token;
-    user.ResetPasswordExpiry = DateTime.UtcNow.AddHours(1);
-    await _context.SaveChangesAsync();
+            user.ResetPasswordToken = token;
+            user.ResetPasswordExpiry = DateTime.UtcNow.AddHours(1);
+            await _context.SaveChangesAsync();
 
-    // Use frontend URL from settings
-    // var frontendUrl = _emailSettings.FrontendUrl ?? "https://hotels-ui-obxn.onrender.com";
-    // var resetLink = $"{frontendUrl}/reset-password?token={token}&email={Uri.EscapeDataString(user.Email)}";
-    // var resetLink = $"http://localhost:5173/reset-password?token={token}&email={Uri.EscapeDataString(user.Email)}";
-    var resetLink = $"https://backend.chaloholidayonline.com/reset-password?token={token}&email={Uri.EscapeDataString(user.Email)}";
+            // Use frontend URL from settings
+            // var frontendUrl = _emailSettings.FrontendUrl ?? "https://hotels-ui-obxn.onrender.com";
+            // var resetLink = $"{frontendUrl}/reset-password?token={token}&email={Uri.EscapeDataString(user.Email)}";
+            // var resetLink = $"http://localhost:5173/reset-password?token={token}&email={Uri.EscapeDataString(user.Email)}";
+            var resetLink = $"https://backend.chaloholidayonline.com/reset-password?token={token}&email={Uri.EscapeDataString(user.Email)}";
 
-    await SendEmailAsync(user.Email, "Forgot Password", $"Click to reset: {resetLink}");
-}
+            await SendEmailAsync(user.Email, "Forgot Password", $"Click to reset: {resetLink}");
+        }
         public async Task ResetPasswordAsync(ResetPasswordRequest request)
         {
             var user = await _context.Users.SingleOrDefaultAsync(u => u.ResetPasswordToken == request.Token && u.ResetPasswordExpiry > DateTime.UtcNow);
@@ -233,6 +235,20 @@ public async Task SendForgotPasswordEmailAsync(ForgotPasswordRequest request)
             await client.AuthenticateAsync(_emailSettings.SenderEmail, _emailSettings.Password);
             await client.SendAsync(message);
             await client.DisconnectAsync(true);
+        }
+        
+        public async Task<List<UserDto>> GetAllUsersAsync()
+        {
+            return await _context.Users
+                .Select(u => new UserDto
+                {
+                    Id = u.Id,
+                    Email = u.Email,
+                    FirstName = u.FirstName,
+                    LastName = u.LastName,
+                    Role = u.Role
+                })
+                .ToListAsync();
         }
     }
 }
