@@ -3,6 +3,7 @@ using System;
 using HotelAPI.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace HotelAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250926075052_AddSupplierCategoryIdToSubCategories")]
+    partial class AddSupplierCategoryIdToSubCategories
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -174,7 +177,7 @@ namespace HotelAPI.Migrations
 
                     b.HasIndex("CountryId");
 
-                    b.ToTable("Agencies", (string)null);
+                    b.ToTable("Agencies");
                 });
 
             modelBuilder.Entity("HotelAPI.Models.AgencyStaff", b =>
@@ -222,7 +225,7 @@ namespace HotelAPI.Migrations
 
                     b.HasIndex("AgencyId");
 
-                    b.ToTable("AgencyStaff", (string)null);
+                    b.ToTable("AgencyStaff");
                 });
 
             modelBuilder.Entity("HotelAPI.Models.HotelInfo", b =>
@@ -285,7 +288,7 @@ namespace HotelAPI.Migrations
 
                     b.HasIndex("CountryId");
 
-                    b.ToTable("HotelInfo", (string)null);
+                    b.ToTable("HotelInfo");
                 });
 
             modelBuilder.Entity("HotelAPI.Models.HotelStaff", b =>
@@ -317,7 +320,7 @@ namespace HotelAPI.Migrations
 
                     b.HasIndex("HotelInfoId");
 
-                    b.ToTable("HotelStaff", (string)null);
+                    b.ToTable("HotelStaff");
                 });
 
             modelBuilder.Entity("HotelAPI.Models.RecentActivity", b =>
@@ -396,7 +399,7 @@ namespace HotelAPI.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("RefreshTokens", (string)null);
+                    b.ToTable("RefreshTokens");
                 });
 
             modelBuilder.Entity("HotelAPI.Models.Supplier", b =>
@@ -517,7 +520,7 @@ namespace HotelAPI.Migrations
 
                     b.HasIndex("SupplierSubCategoryId");
 
-                    b.ToTable("Suppliers", (string)null);
+                    b.ToTable("Suppliers");
                 });
 
             modelBuilder.Entity("HotelAPI.Models.SupplierCategory", b =>
@@ -547,7 +550,7 @@ namespace HotelAPI.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("SupplierCategories", (string)null);
+                    b.ToTable("SupplierCategories");
                 });
 
             modelBuilder.Entity("HotelAPI.Models.SupplierSubCategory", b =>
@@ -582,7 +585,7 @@ namespace HotelAPI.Migrations
 
                     b.HasIndex("SupplierCategoryId");
 
-                    b.ToTable("SupplierSubCategories", (string)null);
+                    b.ToTable("SupplierSubCategories");
                 });
 
             modelBuilder.Entity("HotelAPI.Models.User", b =>
@@ -622,7 +625,7 @@ namespace HotelAPI.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Users", (string)null);
+                    b.ToTable("Users");
                 });
 
             modelBuilder.Entity("City", b =>

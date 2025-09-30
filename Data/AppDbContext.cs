@@ -13,6 +13,9 @@ namespace HotelAPI.Data
 
         public DbSet<HotelInfo> HotelInfo { get; set; } = null!;
         public DbSet<HotelStaff> HotelStaff { get; set; } = null!;
+        public DbSet<Supplier> Suppliers { get; set; } = null!;
+        public DbSet<SupplierCategory> SupplierCategories { get; set; } = null!;
+        public DbSet<SupplierSubCategory> SupplierSubCategories { get; set; } = null!;
         public DbSet<Country> Countries { get; set; } = null!;
         public DbSet<City> Cities { get; set; } = null!;
 
