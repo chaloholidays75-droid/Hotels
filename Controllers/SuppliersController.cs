@@ -61,8 +61,8 @@ namespace HotelAPI.Controllers
             [FromQuery] int? categoryId,
             [FromQuery] int? subCategoryId,
             [FromQuery] int? countryId,
-            [FromQuery] int? cityId,
-            [FromQuery] bool? isActive = true)
+            [FromQuery] int? cityId)
+            // [FromQuery] bool? isActive = true)
         {
             var query = _context.Suppliers
                 .Include(s => s.SupplierCategory)
