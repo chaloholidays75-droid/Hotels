@@ -30,7 +30,7 @@ namespace HotelAPI.Controllers
                 .Include(s => s.SupplierSubCategory)
                 .Include(s => s.Country)
                 .Include(s => s.City)
-                .Where(s => s.IsActive)
+        
                 .ToListAsync();
 
             return Ok(_mapper.Map<List<SupplierResponseDto>>(suppliers));
@@ -86,8 +86,8 @@ namespace HotelAPI.Controllers
             if (cityId.HasValue)
                 query = query.Where(s => s.CityId == cityId.Value);
 
-            if (isActive.HasValue)
-                query = query.Where(s => s.IsActive == isActive.Value);
+            // if (isActive.HasValue)
+            //     query = query.Where(s => s.IsActive == isActive.Value);
 
             var suppliers = await query.ToListAsync();
             return Ok(_mapper.Map<List<SupplierResponseDto>>(suppliers));
@@ -104,7 +104,7 @@ namespace HotelAPI.Controllers
                 .Include(s => s.SupplierSubCategory)
                 .Include(s => s.Country)
                 .Include(s => s.City)
-                .Where(s => s.IsActive)
+               
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
@@ -154,9 +154,10 @@ public async Task<ActionResult<SupplierResponseDto>> CreateSupplier([FromBody] S
     var supplier = _mapper.Map<Supplier>(dto);
     supplier.CreatedAt = DateTime.UtcNow;
     supplier.UpdatedAt = DateTime.UtcNow;
+    supplier.IsActive = true;
 
     // Add to DB
-    _context.Suppliers.Add(supplier);
+            _context.Suppliers.Add(supplier);
     await _context.SaveChangesAsync();
 
     // Reload supplier with related entities for response
@@ -269,6 +270,7 @@ public async Task<ActionResult<SupplierResponseDto>> CreateSupplier([FromBody] S
                 var supplier = _mapper.Map<Supplier>(dto);
                 supplier.CreatedAt = DateTime.UtcNow;
                 supplier.UpdatedAt = DateTime.UtcNow;
+                supplier.IsActive = true;
                 suppliers.Add(supplier);
             }
 

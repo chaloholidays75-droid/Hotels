@@ -28,5 +28,6 @@ namespace HotelAPI.Models.DTO
         public string? BankName { get; set; }
         public string? BankAccountNumber { get; set; }
         public string? PaymentTerms { get; set; }
+        public bool? IsActive { get; set; } 
     }
 }
