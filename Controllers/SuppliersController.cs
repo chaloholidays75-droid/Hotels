@@ -33,8 +33,9 @@ namespace HotelAPI.Controllers
 
                 .ToListAsync();
 
-            return Ok(_mapper.Map<List<SupplierResponseDto>>(suppliers));
+            // return Ok(_mapper.Map<List<SupplierResponseDto>>(suppliers));
             // return Ok(new { message = "Hi I am that problem jisne aapka jina haram karke rakha hai ! " });
+            return Ok(new { message = "Hi I am that problem jo vapis aapka jina haram karke rakha hai ! " });
         }
 
         // GET: api/Suppliers/5
