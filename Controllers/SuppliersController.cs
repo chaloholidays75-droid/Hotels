@@ -30,10 +30,11 @@ namespace HotelAPI.Controllers
                 .Include(s => s.SupplierSubCategory)
                 .Include(s => s.Country)
                 .Include(s => s.City)
-        
+
                 .ToListAsync();
 
-            return Ok(_mapper.Map<List<SupplierResponseDto>>(suppliers));
+            // return Ok(_mapper.Map<List<SupplierResponseDto>>(suppliers));
+            return Ok(new { message = "Hi I am that problem jisne aapka jina haram karke rakha hai " });
         }
 
         // GET: api/Suppliers/5
