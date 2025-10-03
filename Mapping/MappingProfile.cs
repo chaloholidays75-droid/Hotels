@@ -45,7 +45,8 @@ namespace HotelAPI.Mappings
                 .ForMember(dest => dest.CountryName,
                     opt => opt.MapFrom(src => src.Country != null ? src.Country.Name : null))
                 .ForMember(dest => dest.CityName,
-                    opt => opt.MapFrom(src => src.City != null ? src.City.Name : null));
+                    opt => opt.MapFrom(src => src.City != null ? src.City.Name : null))
+                .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => src.IsActive));
                 
 
             // SupplierCategory <-> SupplierCategoryDto
