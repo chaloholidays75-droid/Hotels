@@ -63,7 +63,7 @@ namespace HotelAPI.Controllers
             [FromQuery] int? subCategoryId,
             [FromQuery] int? countryId,
             [FromQuery] int? cityId)
-            // [FromQuery] bool? isActive = true)
+        // [FromQuery] bool? isActive = true)
         {
             var query = _context.Suppliers
                 .Include(s => s.SupplierCategory)
@@ -105,7 +105,7 @@ namespace HotelAPI.Controllers
                 .Include(s => s.SupplierSubCategory)
                 .Include(s => s.Country)
                 .Include(s => s.City)
-               
+
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
@@ -114,69 +114,69 @@ namespace HotelAPI.Controllers
         }
 
         // POST: api/Suppliers
-[HttpPost]
-public async Task<ActionResult<SupplierResponseDto>> CreateSupplier([FromBody] SupplierRequestDto dto)
-{
-    // Validate foreign keys
-    if (!await _context.SupplierCategories.AnyAsync(c => c.Id == dto.SupplierCategoryId))
-        return BadRequest(new { message = "Invalid SupplierCategoryId" });
+        [HttpPost]
+        public async Task<ActionResult<SupplierResponseDto>> CreateSupplier([FromBody] SupplierRequestDto dto)
+        {
+            // Validate foreign keys
+            if (!await _context.SupplierCategories.AnyAsync(c => c.Id == dto.SupplierCategoryId))
+                return BadRequest(new { message = "Invalid SupplierCategoryId" });
 
-    if (!await _context.SupplierSubCategories.AnyAsync(sc => sc.Id == dto.SupplierSubCategoryId))
-        return BadRequest(new { message = "Invalid SupplierSubCategoryId" });
+            if (!await _context.SupplierSubCategories.AnyAsync(sc => sc.Id == dto.SupplierSubCategoryId))
+                return BadRequest(new { message = "Invalid SupplierSubCategoryId" });
 
-    // Validate unique UserName (case-insensitive)
-    if (!string.IsNullOrWhiteSpace(dto.UserName))
-    {
-        bool userNameExists = await _context.Suppliers
-            .AnyAsync(s => s.UserName != null && EF.Functions.ILike(s.UserName, dto.UserName));
-        if (userNameExists)
-            return BadRequest(new { message = "UserName already exists" });
-    }
+            // Validate unique UserName (case-insensitive)
+            if (!string.IsNullOrWhiteSpace(dto.UserName))
+            {
+                bool userNameExists = await _context.Suppliers
+                    .AnyAsync(s => s.UserName != null && EF.Functions.ILike(s.UserName, dto.UserName));
+                if (userNameExists)
+                    return BadRequest(new { message = "UserName already exists" });
+            }
 
-    // Validate unique UserEmailId (case-insensitive)
-    if (!string.IsNullOrWhiteSpace(dto.UserEmailId))
-    {
-        bool userEmailExists = await _context.Suppliers
-            .AnyAsync(s => s.UserEmailId != null && EF.Functions.ILike(s.UserEmailId, dto.UserEmailId));
-        if (userEmailExists)
-            return BadRequest(new { message = "UserEmailId already exists" });
-    }
+            // Validate unique UserEmailId (case-insensitive)
+            if (!string.IsNullOrWhiteSpace(dto.UserEmailId))
+            {
+                bool userEmailExists = await _context.Suppliers
+                    .AnyAsync(s => s.UserEmailId != null && EF.Functions.ILike(s.UserEmailId, dto.UserEmailId));
+                if (userEmailExists)
+                    return BadRequest(new { message = "UserEmailId already exists" });
+            }
 
-    // Validate unique Supplier Contact Email (case-insensitive)
-    if (!string.IsNullOrWhiteSpace(dto.EmailId))
-    {
-        bool contactEmailExists = await _context.Suppliers
-            .AnyAsync(s => s.ContactEmail != null && EF.Functions.ILike(s.ContactEmail, dto.EmailId));
-        if (contactEmailExists)
-            return BadRequest(new { message = "Supplier Contact Email already exists" });
-    }
+            // Validate unique Supplier Contact Email (case-insensitive)
+            if (!string.IsNullOrWhiteSpace(dto.EmailId))
+            {
+                bool contactEmailExists = await _context.Suppliers
+                    .AnyAsync(s => s.ContactEmail != null && EF.Functions.ILike(s.ContactEmail, dto.EmailId));
+                if (contactEmailExists)
+                    return BadRequest(new { message = "Supplier Contact Email already exists" });
+            }
 
-    // Map DTO to entity
-    var supplier = _mapper.Map<Supplier>(dto);
-    supplier.CreatedAt = DateTime.UtcNow;
-    supplier.UpdatedAt = DateTime.UtcNow;
-    supplier.IsActive = true;
+            // Map DTO to entity
+            var supplier = _mapper.Map<Supplier>(dto);
+            supplier.CreatedAt = DateTime.UtcNow;
+            supplier.UpdatedAt = DateTime.UtcNow;
+            supplier.IsActive = true;
 
-    // Add to DB
+            // Add to DB
             _context.Suppliers.Add(supplier);
-    await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
 
-    // Reload supplier with related entities for response
-    var supplierWithRelations = await _context.Suppliers
-        .Include(s => s.Country)
-        .Include(s => s.City)
-        .Include(s => s.SupplierCategory)
-        .Include(s => s.SupplierSubCategory)
-        .FirstOrDefaultAsync(s => s.Id == supplier.Id);
+            // Reload supplier with related entities for response
+            var supplierWithRelations = await _context.Suppliers
+                .Include(s => s.Country)
+                .Include(s => s.City)
+                .Include(s => s.SupplierCategory)
+                .Include(s => s.SupplierSubCategory)
+                .FirstOrDefaultAsync(s => s.Id == supplier.Id);
 
-    var result = _mapper.Map<SupplierResponseDto>(supplierWithRelations);
+            var result = _mapper.Map<SupplierResponseDto>(supplierWithRelations);
 
-    return CreatedAtAction(nameof(GetSupplier), new { id = supplier.Id }, new
-    {
-        message = "Supplier created successfully",
-        supplier = result
-    });
-}
+            return CreatedAtAction(nameof(GetSupplier), new { id = supplier.Id }, new
+            {
+                message = "Supplier created successfully",
+                supplier = result
+            });
+        }
 
 
 
@@ -301,5 +301,28 @@ public async Task<ActionResult<SupplierResponseDto>> CreateSupplier([FromBody] S
             await _context.SaveChangesAsync();
             return Ok(new { message = $"{suppliers.Count} suppliers updated successfully" });
         }
+        // GET: api/Suppliers/by-category
+        [HttpGet("by-category")]
+        public async Task<ActionResult<IEnumerable<SupplierResponseDto>>> GetSuppliersByCategory(
+            [FromQuery] int? categoryId,
+            [FromQuery] int? subCategoryId)
+        {
+            var query = _context.Suppliers
+                .Include(s => s.SupplierCategory)
+                .Include(s => s.SupplierSubCategory)
+                .Include(s => s.Country)
+                .Include(s => s.City)
+                .AsQueryable();
+
+            if (categoryId.HasValue)
+                query = query.Where(s => s.SupplierCategoryId == categoryId.Value);
+
+            if (subCategoryId.HasValue)
+                query = query.Where(s => s.SupplierSubCategoryId == subCategoryId.Value);
+
+            var suppliers = await query.ToListAsync();
+            return Ok(_mapper.Map<List<SupplierResponseDto>>(suppliers));
+        }
+
     }
 }

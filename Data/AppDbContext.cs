@@ -13,6 +13,7 @@ namespace HotelAPI.Data
 
         public DbSet<HotelInfo> HotelInfo { get; set; } = null!;
         public DbSet<HotelStaff> HotelStaff { get; set; } = null!;
+        public DbSet<Booking> Bookings { get; set; } = null!;
         public DbSet<Supplier> Suppliers { get; set; } = null!;
         public DbSet<SupplierCategory> SupplierCategories { get; set; } = null!;
         public DbSet<SupplierSubCategory> SupplierSubCategories { get; set; } = null!;
@@ -86,6 +87,29 @@ namespace HotelAPI.Data
                 entity.Property(e => e.UserAgent).HasMaxLength(255);
                 entity.Property(e => e.Timestamp).HasDefaultValueSql("NOW()");
             });
+            modelBuilder.Entity<Booking>(entity =>
+                {
+                    entity.ToTable("Bookings");
+                    entity.HasKey(b => b.Id);
+
+                    // Foreign key -> Agency
+                    entity.HasOne(b => b.Agency)
+                        .WithMany() // You can optionally add a ICollection<Booking> in Agency
+                        .HasForeignKey(b => b.AgencyId)
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    // Foreign key -> Supplier
+                    entity.HasOne(b => b.Supplier)
+                        .WithMany()
+                        .HasForeignKey(b => b.SupplierId)
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    // Foreign key -> HotelInfo
+                    entity.HasOne(b => b.Hotel)
+                        .WithMany()
+                        .HasForeignKey(b => b.HotelId)
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
 
         }
 
