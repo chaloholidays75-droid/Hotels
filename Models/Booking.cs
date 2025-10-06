@@ -33,5 +33,7 @@ namespace HotelAPI.Models
         public string? SpecialRequest { get; set; }
         public string? Status { get; set; } = "Pending";
 
+        // NEW COLUMN
+        public int? NumberOfPeople { get; set; }
     }
 }

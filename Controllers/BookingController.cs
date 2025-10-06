@@ -49,6 +49,7 @@ namespace HotelAPI.Controllers
                     b.Adults,
                     b.Children,
                     b.ChildrenAges,
+                     b.NumberOfPeople,
                     b.Status,
                     b.SpecialRequest,
                     Nights = (b.CheckIn.HasValue && b.CheckOut.HasValue)
@@ -194,38 +195,42 @@ namespace HotelAPI.Controllers
 
         // POST: api/Booking
         [HttpPost]
-        public async Task<ActionResult<object>> Create([FromBody] Booking booking)
-        {
-            if (booking.CheckIn.HasValue)
-                booking.CheckIn = DateTime.SpecifyKind(booking.CheckIn.Value, DateTimeKind.Utc);
-            if (booking.CheckOut.HasValue)
-                booking.CheckOut = DateTime.SpecifyKind(booking.CheckOut.Value, DateTimeKind.Utc);
+    public async Task<ActionResult<object>> Create([FromBody] Booking booking)
+    {
+        if (booking.CheckIn.HasValue)
+            booking.CheckIn = DateTime.SpecifyKind(booking.CheckIn.Value, DateTimeKind.Utc);
+        if (booking.CheckOut.HasValue)
+            booking.CheckOut = DateTime.SpecifyKind(booking.CheckOut.Value, DateTimeKind.Utc);
 
-            bool duplicateExists = await _context.Bookings.AnyAsync(b =>
-                b.AgencyId == booking.AgencyId &&
-                b.SupplierId == booking.SupplierId &&
-                b.HotelId == booking.HotelId &&
-                b.CheckIn == booking.CheckIn &&
-                b.CheckOut == booking.CheckOut
-            );
+        bool duplicateExists = await _context.Bookings.AnyAsync(b =>
+            b.AgencyId == booking.AgencyId &&
+            b.SupplierId == booking.SupplierId &&
+            b.HotelId == booking.HotelId &&
+            b.CheckIn == booking.CheckIn &&
+            b.CheckOut == booking.CheckOut
+        );
 
-            if (duplicateExists)
-                return Conflict(new { message = "Booking already exists for these dates." });
+        if (duplicateExists)
+            return Conflict(new { message = "Booking already exists for these dates." });
 
-            if (booking.CheckIn.HasValue && booking.CheckOut.HasValue)
-                booking.Nights = (int)(booking.CheckOut.Value - booking.CheckIn.Value).TotalDays;
+        if (booking.CheckIn.HasValue && booking.CheckOut.HasValue)
+            booking.Nights = (int)(booking.CheckOut.Value - booking.CheckIn.Value).TotalDays;
 
-            booking.Status ??= "Pending";
-            booking.TicketNumber = "TEMP-" + Guid.NewGuid();
+        booking.Status ??= "Pending";
+        booking.TicketNumber = "TEMP-" + Guid.NewGuid();
 
-            _context.Bookings.Add(booking);
-            await _context.SaveChangesAsync();
+        // 🧮 Automatically calculate total number of people
+        if (booking.Adults.HasValue || booking.Children.HasValue)
+            booking.NumberOfPeople = (booking.Adults ?? 0) + (booking.Children ?? 0);
 
-            booking.TicketNumber = $"TICKET-{DateTime.UtcNow:yyyyMMddHHmm}-{booking.Id}";
-            await _context.SaveChangesAsync();
+        _context.Bookings.Add(booking);
+        await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetById), new { id = booking.Id }, booking);
-        }
+        booking.TicketNumber = $"TICKET-{DateTime.UtcNow:yyyyMMddHHmm}-{booking.Id}";
+        await _context.SaveChangesAsync();
+
+        return CreatedAtAction(nameof(GetById), new { id = booking.Id }, booking);
+    }
 
         // PUT: api/Booking/{id}
         [HttpPut("{id}")]
