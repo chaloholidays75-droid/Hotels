@@ -33,5 +33,9 @@ namespace HotelAPI.Models.DTO
         public string? CityName { get; set; }
         public string? SupplierCategoryName { get; set; }
         public string? SupplierSubCategoryName { get; set; }
+        public int? CreatedById { get; set; }
+        public int? UpdatedById { get; set; }
+        public DateTime? CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
     }
 }

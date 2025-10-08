@@ -1,231 +1,340 @@
-// Controllers/DashboardController.cs
-using HotelAPI.Data;
-using HotelAPI.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-namespace HotelAPI.Controllers{
-[ApiController]
-[Route("api/[controller]")]
-public class DashboardController : ControllerBase
+using HotelAPI.Data;
+using System;
+using System.Linq;
+
+namespace HotelAPI.Controllers
 {
-    private readonly AppDbContext _context;
-    private readonly ILogger<DashboardController> _logger;
-
-    public DashboardController(AppDbContext context, ILogger<DashboardController> logger)
+    [ApiController]
+    [Route("api/[controller]")]
+    public class DashboardController : ControllerBase
     {
-        _context = context;
-        _logger = logger;
-    }
+        private readonly AppDbContext _context;
+        public DashboardController(AppDbContext context) => _context = context;
 
-    [HttpGet("stats")]
-    public async Task<IActionResult> GetStats()
-    {
-        try
+        // ============================================================
+        // 1️⃣  SUMMARY METRICS
+        // ============================================================
+        [HttpGet("summary")]
+        public IActionResult GetSummary()
         {
-            // Since HotelInfo doesn't have IsActive, we'll count all hotels as active
-            // You can modify this logic based on your actual business rules
-            var stats = new DashboardStats
+            var totalBookings = _context.Bookings.Count();
+            var confirmed = _context.Bookings.Count(b => b.Status == "Confirmed");
+            var cancelled = _context.Bookings.Count(b => b.Status == "Cancelled");
+            var pending = _context.Bookings.Count(b => b.Status == "Pending");
+            var activeAgencies = _context.Agencies.Count(a => a.IsActive);
+            var activeSuppliers = _context.Suppliers.Count(s => s.IsActive);
+            var activeHotels = _context.HotelInfo.Count(h => h.IsActive);
+
+            var today = DateTime.UtcNow.Date;
+            var todayBookings = _context.Bookings.Count(b => b.CreatedAt.Date == today);
+
+            return Ok(new
             {
-                TotalHotels = await _context.HotelInfo.CountAsync(),
-                TotalAgencies = await _context.Agencies.CountAsync(),
-                ActiveHotels = await _context.HotelInfo.CountAsync(), // All hotels considered active
-                PendingApprovals = await _context.Agencies.CountAsync(a => a.IsActive == false),
-                TotalCountries = await _context.Countries.CountAsync()
-            };
-
-            return Ok(stats);
+                totalBookings,
+                confirmed,
+                pending,
+                cancelled,
+                activeAgencies,
+                activeSuppliers,
+                activeHotels,
+                todayBookings
+            });
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error fetching dashboard stats");
-            return StatusCode(500, $"Internal server error: {ex.Message}");
-        }
-    }
 
-
-    [HttpGet("hotels-by-country")]
-    public async Task<IActionResult> GetHotelsByCountry()
-    {
-        try
+        // ============================================================
+        // 2️⃣  MONTHLY BOOKING TREND
+        // ============================================================
+        [HttpGet("booking-trends")]
+        public IActionResult GetBookingTrends()
         {
-            var hotelsByCountry = await _context.HotelInfo
-                .Include(h => h.Country)
-                .GroupBy(h => new { h.Country.Id, h.Country.Name })
+            var data = _context.Bookings
+                .Where(b => b.CheckIn.HasValue)
+                .GroupBy(b => new { b.CheckIn.Value.Year, b.CheckIn.Value.Month })
                 .Select(g => new
                 {
-                    CountryId = g.Key.Id,
-                    Country = g.Key.Name,
-                    Count = g.Count()
+                    Year = g.Key.Year,
+                    Month = g.Key.Month,
+                    TotalBookings = g.Count(),
+                    Confirmed = g.Count(b => b.Status == "Confirmed"),
+                    Cancelled = g.Count(b => b.Status == "Cancelled")
                 })
-                .OrderByDescending(x => x.Count)
+                .OrderBy(x => x.Year).ThenBy(x => x.Month)
+                .ToList();
+
+            return Ok(data);
+        }
+
+        // ============================================================
+        // 3️⃣  AGENCY PERFORMANCE (for bar chart)
+        // ============================================================
+        [HttpGet("agency-performance")]
+        public IActionResult GetAgencyPerformance()
+        {
+            var data = _context.Bookings
+                .Include(b => b.Agency)
+                .Where(b => b.Agency != null)
+                .GroupBy(b => b.Agency.AgencyName)
+                .Select(g => new
+                {
+                    Agency = g.Key,
+                    Bookings = g.Count(),
+                    Confirmed = g.Count(b => b.Status == "Confirmed"),
+                    Cancelled = g.Count(b => b.Status == "Cancelled")
+                })
+                .OrderByDescending(x => x.Bookings)
                 .Take(10)
-                .ToListAsync();
+                .ToList();
 
-            return Ok(hotelsByCountry);
+            return Ok(data);
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error fetching hotels by country");
-            return StatusCode(500, $"Internal server error: {ex.Message}");
-        }
-    }
 
-    [HttpGet("agencies-by-country")]
-    public async Task<IActionResult> GetAgenciesByCountry()
-    {
-        try
+        // ============================================================
+        // 4️⃣  SUPPLIER PERFORMANCE
+        // ============================================================
+        [HttpGet("supplier-performance")]
+        public IActionResult GetSupplierPerformance()
         {
-            var agenciesByCountry = await _context.Agencies
-                .GroupBy(a => a.Country)
+            var data = _context.Bookings
+                .Include(b => b.Supplier)
+                .Where(b => b.Supplier != null)
+                .GroupBy(b => b.Supplier.SupplierName)
+                .Select(g => new
+                {
+                    Supplier = g.Key,
+                    Bookings = g.Count(),
+                    Confirmed = g.Count(b => b.Status == "Confirmed"),
+                    Cancelled = g.Count(b => b.Status == "Cancelled")
+                })
+                .OrderByDescending(x => x.Bookings)
+                .Take(10)
+                .ToList();
+
+            return Ok(data);
+        }
+
+        // ============================================================
+        // 5️⃣  HOTEL OCCUPANCY HEATMAP DATA
+        // ============================================================
+        [HttpGet("hotel-occupancy")]
+        public IActionResult GetHotelOccupancy()
+        {
+            var data = _context.Bookings
+                .Include(b => b.Hotel)
+                .Where(b => b.Hotel != null && b.CheckIn.HasValue)
+                .GroupBy(b => b.Hotel.HotelName)
+                .Select(g => new
+                {
+                    Hotel = g.Key,
+                    Bookings = g.Count(),
+                    AvgNights = g.Average(x => x.Nights ?? 0),
+                    People = g.Sum(x => x.NumberOfPeople ?? 0)
+                })
+                .OrderByDescending(x => x.Bookings)
+                .Take(10)
+                .ToList();
+
+            return Ok(data);
+        }
+
+        // ============================================================
+        // 6️⃣  TOP 5 PERFORMERS (Hotels, Agencies, Suppliers)
+        // ============================================================
+        [HttpGet("top-performers")]
+        public IActionResult GetTopPerformers()
+        {
+            var topHotels = _context.Bookings
+                .Include(b => b.Hotel)
+                .GroupBy(b => b.Hotel.HotelName)
+                .Select(g => new { Hotel = g.Key, Count = g.Count() })
+                .OrderByDescending(x => x.Count).Take(5).ToList();
+
+            var topAgencies = _context.Bookings
+                .Include(b => b.Agency)
+                .GroupBy(b => b.Agency.AgencyName)
+                .Select(g => new { Agency = g.Key, Count = g.Count() })
+                .OrderByDescending(x => x.Count).Take(5).ToList();
+
+            var topSuppliers = _context.Bookings
+                .Include(b => b.Supplier)
+                .GroupBy(b => b.Supplier.SupplierName)
+                .Select(g => new { Supplier = g.Key, Count = g.Count() })
+                .OrderByDescending(x => x.Count).Take(5).ToList();
+
+            return Ok(new { topHotels, topAgencies, topSuppliers });
+        }
+
+        // ============================================================
+        // 7️⃣  DAILY BOOKINGS (for line chart)
+        // ============================================================
+        [HttpGet("daily-bookings")]
+        public IActionResult GetDailyBookings()
+        {
+            var today = DateTime.UtcNow;
+            var last30 = today.AddDays(-30);
+
+            var data = _context.Bookings
+                .Where(b => b.CreatedAt >= last30)
+                .GroupBy(b => b.CreatedAt.Date)
+                .Select(g => new
+                {
+                    Date = g.Key,
+                    Count = g.Count(),
+                    Confirmed = g.Count(x => x.Status == "Confirmed")
+                })
+                .OrderBy(x => x.Date)
+                .ToList();
+
+            return Ok(data);
+        }
+
+        // ============================================================
+        // 8️⃣  BOOKINGS BY COUNTRY (for map/chart)
+        // ============================================================
+        [HttpGet("bookings-by-country")]
+        public IActionResult GetBookingsByCountry()
+        {
+            var data = _context.Bookings
+                .Include(b => b.Hotel)
+                .ThenInclude(h => h.Country)
+                .Where(b => b.Hotel != null && b.Hotel.Country != null)
+                .GroupBy(b => b.Hotel.Country.Name)
                 .Select(g => new
                 {
                     Country = g.Key,
                     Count = g.Count()
                 })
                 .OrderByDescending(x => x.Count)
-                .Take(10)
-                .ToListAsync();
+                .ToList();
 
-            return Ok(agenciesByCountry);
+            return Ok(data);
         }
-        catch (Exception ex)
+
+        // ============================================================
+        // 9️⃣  UPCOMING BOOKINGS
+        // ============================================================
+        [HttpGet("upcoming-bookings")]
+        public IActionResult GetUpcoming()
         {
-            _logger.LogError(ex, "Error fetching agencies by country");
-            return StatusCode(500, $"Internal server error: {ex.Message}");
-        }
-    }
-    // Controllers/DashboardController.cs
-[HttpGet("monthly-stats")]
-public async Task<IActionResult> GetMonthlyStats([FromQuery] int months = 6)
-{
-    try
-    {
-        var endDate = DateTime.UtcNow;
-        var startDate = endDate.AddMonths(-months + 1); // include current month
-
-        // Generate all months in the range first
-        var allMonths = Enumerable.Range(0, months)
-            .Select(i => startDate.AddMonths(i))
-            .Select(d => new DateTime(d.Year, d.Month, 1))
-            .ToList();
-
-        // Get hotel counts by month
-        var hotelStats = await _context.HotelInfo
-            .Where(h => h.CreatedAt >= startDate && h.CreatedAt <= endDate)
-            .GroupBy(h => new { h.CreatedAt.Year, h.CreatedAt.Month })
-            .Select(g => new
-            {
-                Year = g.Key.Year,
-                Month = g.Key.Month,
-                Hotels = g.Count()
-            })
-            .ToListAsync();
-
-        // Get agency counts by month
-        var agencyStats = await _context.Agencies
-            .Where(a => a.CreatedAt >= startDate && a.CreatedAt <= endDate)
-            .GroupBy(a => new { a.CreatedAt.Year, a.CreatedAt.Month })
-            .Select(g => new
-            {
-                Year = g.Key.Year,
-                Month = g.Key.Month,
-                Agencies = g.Count()
-            })
-            .ToListAsync();
-
-        // Combine the results, ensuring all months are included
-        var monthlyStats = allMonths.Select(month => new
-        {
-            Month = month.ToString("MMM yyyy"),
-            Hotels = hotelStats
-                .FirstOrDefault(h => h.Year == month.Year && h.Month == month.Month)?.Hotels ?? 0,
-            Agencies = agencyStats
-                .FirstOrDefault(a => a.Year == month.Year && a.Month == month.Month)?.Agencies ?? 0,
-            Date = month // keep the DateTime for proper ordering
-        })
-        .OrderBy(x => x.Date) // order chronologically
-        .Select(x => new
-        {
-            x.Month,
-            x.Hotels,
-            x.Agencies
-        })
-        .ToList();
-
-        return Ok(monthlyStats);
-    }
-    catch (Exception ex)
-    {
-        _logger.LogError(ex, "Error fetching monthly stats");
-        return StatusCode(500, $"Internal server error: {ex.Message}");
-    }
-}
-
-    [HttpGet("top-countries")]
-    public async Task<IActionResult> GetTopCountries()
-    {
-        try
-        {
-            var topCountries = await _context.Countries
-
-                .Select(c => new
+            var today = DateTime.UtcNow;
+            var upcoming = _context.Bookings
+                .Include(b => b.Agency)
+                .Include(b => b.Hotel)
+                .Where(b => b.CheckIn >= today)
+                .OrderBy(b => b.CheckIn)
+                .Take(20)
+                .Select(b => new
                 {
-                    CountryId = c.Id,
-                    CountryName = c.Name,
-                    CountryCode = c.Code,
-                    HotelCount = _context.HotelInfo.Count(a => a.CountryId == c.Id),
-                    AgencyCount = _context.Agencies.Count(a => a.CountryId == c.Id)
-                })
-                .OrderByDescending(c => c.HotelCount + c.AgencyCount)
-                .Take(8)
-                .ToListAsync();
+                    b.TicketNumber,
+                    b.Status,
+                    Agency = b.Agency.AgencyName,
+                    Hotel = b.Hotel.HotelName,
+                    b.CheckIn,
+                    b.CheckOut
+                }).ToList();
 
-            return Ok(topCountries);
+            return Ok(upcoming);
         }
-        catch (Exception ex)
+
+        // ============================================================
+        // 🔟  BOOKING STATUS DISTRIBUTION (Pie chart)
+        // ============================================================
+        [HttpGet("status-distribution")]
+        public IActionResult GetStatusDistribution()
         {
-            _logger.LogError(ex, "Error fetching top countries");
-            return StatusCode(500, $"Internal server error: {ex.Message}");
+            var data = _context.Bookings
+                .GroupBy(b => b.Status)
+                .Select(g => new
+                {
+                    Status = g.Key,
+                    Count = g.Count()
+                })
+                .ToList();
+
+            return Ok(data);
+        }
+
+        // ============================================================
+        // 11️⃣  PEAK SEASON ANALYSIS
+        // ============================================================
+        [HttpGet("peak-season")]
+        public IActionResult GetPeakSeason()
+        {
+            var peak = _context.Bookings
+                .Where(b => b.CheckIn.HasValue)
+                .GroupBy(b => b.CheckIn.Value.Month)
+                .Select(g => new { Month = g.Key, Count = g.Count() })
+                .OrderByDescending(x => x.Count)
+                .FirstOrDefault();
+
+            string monthName = "N/A";
+
+            if (peak != null)
+            {
+                // peak.Month is already int, no need for .Value
+                monthName = new DateOnly(2025, peak.Month, 1).ToString("MMMM");
+            }
+
+            return Ok(new
+            {
+                PeakMonth = peak?.Month,
+                PeakMonthName = monthName,
+                TotalBookings = peak?.Count
+            });
+        }
+
+
+
+
+        // ============================================================
+        // 12️⃣  CUSTOMER VOLUME BY PEOPLE COUNT
+        // ============================================================
+        [HttpGet("people-distribution")]
+        public IActionResult GetPeopleDistribution()
+        {
+            var data = _context.Bookings
+                .GroupBy(b => b.NumberOfPeople)
+                .Select(g => new { People = g.Key, Count = g.Count() })
+                .OrderBy(x => x.People)
+                .ToList();
+
+            return Ok(data);
+        }
+
+        // ============================================================
+        // 13️⃣  AVERAGE STAY & PEOPLE METRICS
+        // ============================================================
+        [HttpGet("averages")]
+        public IActionResult GetAverages()
+        {
+            var avgPeople = _context.Bookings.Average(b => b.NumberOfPeople ?? 0);
+            var avgNights = _context.Bookings.Average(b => b.Nights ?? 0);
+
+            return Ok(new
+            {
+                AveragePeople = Math.Round(avgPeople, 2),
+                AverageNights = Math.Round(avgNights, 2)
+            });
+        }
+
+
+        // ============================================================
+        // 15️⃣  RECENT ACTIVITY FEED
+        // ============================================================
+        [HttpGet("recent-activity")]
+        public IActionResult GetRecentActivity()
+        {
+            var activities = _context.Bookings
+                .OrderByDescending(b => b.UpdatedAt)
+                .Take(10)
+                .Select(b => new
+                {
+                    Message = $"Booking #{b.TicketNumber} was {b.Status}",
+                    b.UpdatedAt
+                }).ToList();
+
+            return Ok(activities);
         }
     }
-    //  [HttpGet("recent-activities")]
-    //     public async Task<IActionResult> GetRecentActivities()
-    //     {
-    //         var activities = await _context.RecentActivities
-    //             .OrderByDescending(r => r.CreatedAt)
-    //             .Select(r => new {
-    //                 id = r.Id,
-    //                 user = r.Username,      // this is what your React app will use
-    //                 action = r.ActionType,
-    //                 type = r.Entity.ToLower(),
-    //                 name = r.Description,
-    //                 timestamp = r.CreatedAt
-    //             })
-    //             .ToListAsync();
-
-    //         return Ok(activities);
-    //     }
-
-    private string GetTimeAgo(DateTime dateTime)
-        {
-            var timeSpan = DateTime.UtcNow - dateTime;
-
-            if (timeSpan <= TimeSpan.FromSeconds(60))
-                return $"{timeSpan.Seconds} seconds ago";
-
-            if (timeSpan <= TimeSpan.FromMinutes(60))
-                return $"{timeSpan.Minutes} minutes ago";
-
-            if (timeSpan <= TimeSpan.FromHours(24))
-                return $"{timeSpan.Hours} hours ago";
-
-            if (timeSpan <= TimeSpan.FromDays(30))
-                return $"{timeSpan.Days} days ago";
-
-            if (timeSpan <= TimeSpan.FromDays(365))
-                return $"{timeSpan.Days / 30} months ago";
-
-            return $"{timeSpan.Days / 365} years ago";
-        }
-}
 }

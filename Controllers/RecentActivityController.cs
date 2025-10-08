@@ -71,5 +71,61 @@ namespace HotelAPI.Controllers
             _context.RecentActivities.Add(activity);
             await _context.SaveChangesAsync();
         }
+               // ========== 8. RECENT ACTIVITIES ==========
+
+        [HttpGet("recent-activities")]
+        public async Task<IActionResult> GetRecentActivities()
+        {
+            try
+            {
+                // 1️⃣ Fetch from database first
+                var activities = await _context.RecentActivities
+                    .OrderByDescending(r => r.Timestamp)
+                    .Take(20)
+                    .ToListAsync(); // materialize query
+
+                // 2️⃣ Project in memory, including TimeAgo
+                var result = activities.Select(r => new
+                {
+                    r.Id,
+                    r.UserId,
+                    r.UserName,
+                    r.Action,
+                    r.Entity,
+                    r.EntityId,
+                    r.Description,
+                    r.Timestamp,
+                    TimeAgo = GetTimeAgo(r.Timestamp) // safe now
+                }).ToList();
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                // _logger.LogError(ex, "Error fetching recent activities");
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        // ===== Helper: Human-readable time ago =====
+        private static string GetTimeAgo(DateTime dateTime)
+        {
+            var timeSpan = DateTime.UtcNow - dateTime;
+
+            if (timeSpan.TotalSeconds < 60)
+                return $"{timeSpan.Seconds} seconds ago";
+            if (timeSpan.TotalMinutes < 60)
+                return $"{timeSpan.Minutes} minutes ago";
+            if (timeSpan.TotalHours < 24)
+                return $"{timeSpan.Hours} hours ago";
+            if (timeSpan.TotalDays < 30)
+                return $"{timeSpan.Days} days ago";
+            if (timeSpan.TotalDays < 365)
+                return $"{(int)(timeSpan.TotalDays / 30)} months ago";
+
+            return $"{(int)(timeSpan.TotalDays / 365)} years ago";
+        }
+
+    
     }
 }

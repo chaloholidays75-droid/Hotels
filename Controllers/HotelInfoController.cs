@@ -52,7 +52,7 @@ namespace HotelAPI.Controllers
             return Ok(new { message = "PATCH debug endpoint works!", timestamp = DateTime.UtcNow });
         }
         // GET: api/hotels
-        // [Authorize(Roles = "Admin,Employee")]
+        [Authorize(Roles = "Admin,Employee")]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<HotelDto>>> GetHotels()
         {

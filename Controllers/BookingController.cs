@@ -6,10 +6,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 
 namespace HotelAPI.Controllers
 {
     [ApiController]
+    [Authorize]
     [Route("api/[controller]")]
     public class BookingController : ControllerBase
     {
@@ -222,6 +224,10 @@ namespace HotelAPI.Controllers
         // 🧮 Automatically calculate total number of people
         if (booking.Adults.HasValue || booking.Children.HasValue)
             booking.NumberOfPeople = (booking.Adults ?? 0) + (booking.Children ?? 0);
+        var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
+        booking.CreatedById = userId;
+        booking.UpdatedById = userId;
+
 
         _context.Bookings.Add(booking);
         await _context.SaveChangesAsync();
@@ -269,6 +275,10 @@ namespace HotelAPI.Controllers
             existingBooking.SpecialRequest = booking.SpecialRequest;
             existingBooking.Status = booking.Status ?? existingBooking.Status;
             existingBooking.UpdatedAt = DateTime.UtcNow;
+
+            // var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
+            
+            // booking.UpdatedById = userId;
 
             if (existingBooking.CheckIn.HasValue && existingBooking.CheckOut.HasValue)
                 existingBooking.Nights = (int)(existingBooking.CheckOut.Value - existingBooking.CheckIn.Value).TotalDays;

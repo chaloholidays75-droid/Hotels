@@ -6,9 +6,10 @@ namespace HotelAPI.Data
 {
     public class AppDbContext : DbContext
     {
-        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        public AppDbContext(DbContextOptions<AppDbContext> options, IHttpContextAccessor httpContextAccessor) : base(options)
         {
-      
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public DbSet<HotelInfo> HotelInfo { get; set; } = null!;
@@ -27,6 +28,46 @@ namespace HotelAPI.Data
 
         public DbSet<RecentActivity> RecentActivities { get; set; }
 
+    public override int SaveChanges()
+        {
+            ApplyAuditInformation();
+            return base.SaveChanges();
+        }
+
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            ApplyAuditInformation();
+            return await base.SaveChangesAsync(cancellationToken);
+        }
+
+        private void ApplyAuditInformation()
+        {
+            int? userId = null;
+
+            // Get current user ID from HTTP context
+            var httpContext = _httpContextAccessor?.HttpContext;
+            var userIdStr = httpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (!string.IsNullOrEmpty(userIdStr))
+            {
+                userId = int.Parse(userIdStr);
+            }
+
+            foreach (var entry in ChangeTracker.Entries<AuditableEntity>())
+            {
+                if (entry.State == EntityState.Added)
+                {
+                    entry.Entity.CreatedAt = DateTime.UtcNow;
+                    entry.Entity.UpdatedAt = DateTime.UtcNow;
+                    entry.Entity.CreatedById = userId;
+                    entry.Entity.UpdatedById = userId;
+                }
+                else if (entry.State == EntityState.Modified)
+                {
+                    entry.Entity.UpdatedAt = DateTime.UtcNow;
+                    entry.Entity.UpdatedById = userId;
+                }
+            }
+        }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
