@@ -27,12 +27,13 @@ namespace HotelAPI.Models
 
         public bool IsActive { get; set; } = true;
 
-       
+
 
         public DateTime? UpdatedAt { get; set; } = DateTime.UtcNow;
 
         // Navigation: Contacts / Staff
         public ICollection<HotelStaff> HotelStaff { get; set; } = new List<HotelStaff>();
+        public ICollection<RoomType> RoomTypes { get; set; } = new List<RoomType>();
 
     }
 }
