@@ -12,15 +12,15 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace HotelAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250926075506_AddAuditColumnsToSupplierCategories")]
-    partial class AddAuditColumnsToSupplierCategories
+    [Migration("20251023121632_AddCommercialLinkToBooking")]
+    partial class AddCommercialLinkToBooking
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.9")
+                .HasAnnotation("ProductVersion", "9.0.0-preview.7.24405.3")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -82,6 +82,9 @@ namespace HotelAPI.Migrations
                     b.Property<int>("PhoneNumberDigits")
                         .HasColumnType("integer")
                         .HasColumnName("PhoneNumberDigits");
+
+                    b.Property<string>("Region")
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -198,22 +201,26 @@ namespace HotelAPI.Migrations
                         .HasColumnType("integer");
 
                     b.Property<string>("Designation")
-                        .HasColumnType("text");
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
 
                     b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
 
-                    b.Property<string>("FirstName")
+                    b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
 
-                    b.Property<string>("LastName")
+                    b.Property<string>("Phone")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Role")
                         .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("PhoneNo")
-                        .HasColumnType("text");
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -226,6 +233,233 @@ namespace HotelAPI.Migrations
                     b.HasIndex("AgencyId");
 
                     b.ToTable("AgencyStaff");
+                });
+
+            modelBuilder.Entity("HotelAPI.Models.Booking", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("AgencyId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("CheckIn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("CheckOut")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("CommercialId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("CreatedById")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("HotelId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("Nights")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("NumberOfPeople")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("NumberOfRooms")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SpecialRequest")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Status")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("SupplierId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TicketNumber")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("UpdatedById")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AgencyId");
+
+                    b.HasIndex("CommercialId");
+
+                    b.HasIndex("HotelId");
+
+                    b.HasIndex("SupplierId");
+
+                    b.ToTable("Bookings", (string)null);
+                });
+
+            modelBuilder.Entity("HotelAPI.Models.BookingRoom", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("Adults")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("BookingId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("Children")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ChildrenAges")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("CreatedById")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("RoomTypeId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("UpdatedById")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookingId");
+
+                    b.HasIndex("RoomTypeId");
+
+                    b.ToTable("BookingRooms");
+                });
+
+            modelBuilder.Entity("HotelAPI.Models.Commercial", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AdditionalCostsJson")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("AutoCalculateRate")
+                        .HasColumnType("boolean");
+
+                    b.Property<int?>("BookingId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("BuyingAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("BuyingCurrency")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<bool>("BuyingVatIncluded")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("BuyingVatPercent")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("CommissionType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<decimal?>("CommissionValue")
+                        .HasColumnType("numeric");
+
+                    b.Property<bool>("Commissionable")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("CreatedById")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("DiscountsJson")
+                        .HasColumnType("text");
+
+                    b.Property<decimal?>("ExchangeRate")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("GrossBuying")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("GrossSelling")
+                        .HasColumnType("numeric");
+
+                    b.Property<bool>("Incentive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("IncentiveType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<decimal?>("IncentiveValue")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("MarkupPercent")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("NetBuying")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("NetSelling")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("Profit")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("ProfitMarginPercent")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("SellingCurrency")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<decimal>("SellingPrice")
+                        .HasColumnType("numeric");
+
+                    b.Property<bool>("SellingVatIncluded")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("SellingVatPercent")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("UpdatedById")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookingId");
+
+                    b.ToTable("Commercials");
                 });
 
             modelBuilder.Entity("HotelAPI.Models.HotelInfo", b =>
@@ -400,6 +634,44 @@ namespace HotelAPI.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("RefreshTokens");
+                });
+
+            modelBuilder.Entity("HotelAPI.Models.RoomType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("CreatedById")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("HotelId")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("UpdatedById")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HotelId");
+
+                    b.ToTable("RoomTypes");
                 });
 
             modelBuilder.Entity("HotelAPI.Models.Supplier", b =>
@@ -657,12 +929,70 @@ namespace HotelAPI.Migrations
             modelBuilder.Entity("HotelAPI.Models.AgencyStaff", b =>
                 {
                     b.HasOne("HotelAPI.Models.Agency", "Agency")
-                        .WithMany()
+                        .WithMany("Staff")
                         .HasForeignKey("AgencyId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Agency");
+                });
+
+            modelBuilder.Entity("HotelAPI.Models.Booking", b =>
+                {
+                    b.HasOne("HotelAPI.Models.Agency", "Agency")
+                        .WithMany()
+                        .HasForeignKey("AgencyId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("HotelAPI.Models.Commercial", "Commercial")
+                        .WithMany()
+                        .HasForeignKey("CommercialId");
+
+                    b.HasOne("HotelAPI.Models.HotelInfo", "Hotel")
+                        .WithMany()
+                        .HasForeignKey("HotelId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("HotelAPI.Models.Supplier", "Supplier")
+                        .WithMany()
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Agency");
+
+                    b.Navigation("Commercial");
+
+                    b.Navigation("Hotel");
+
+                    b.Navigation("Supplier");
+                });
+
+            modelBuilder.Entity("HotelAPI.Models.BookingRoom", b =>
+                {
+                    b.HasOne("HotelAPI.Models.Booking", "Booking")
+                        .WithMany("BookingRooms")
+                        .HasForeignKey("BookingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("HotelAPI.Models.RoomType", "RoomType")
+                        .WithMany()
+                        .HasForeignKey("RoomTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Booking");
+
+                    b.Navigation("RoomType");
+                });
+
+            modelBuilder.Entity("HotelAPI.Models.Commercial", b =>
+                {
+                    b.HasOne("HotelAPI.Models.Booking", "Booking")
+                        .WithMany()
+                        .HasForeignKey("BookingId");
+
+                    b.Navigation("Booking");
                 });
 
             modelBuilder.Entity("HotelAPI.Models.HotelInfo", b =>
@@ -704,6 +1034,17 @@ namespace HotelAPI.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("HotelAPI.Models.RoomType", b =>
+                {
+                    b.HasOne("HotelAPI.Models.HotelInfo", "Hotel")
+                        .WithMany("RoomTypes")
+                        .HasForeignKey("HotelId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Hotel");
                 });
 
             modelBuilder.Entity("HotelAPI.Models.Supplier", b =>
@@ -758,9 +1099,21 @@ namespace HotelAPI.Migrations
                     b.Navigation("Cities");
                 });
 
+            modelBuilder.Entity("HotelAPI.Models.Agency", b =>
+                {
+                    b.Navigation("Staff");
+                });
+
+            modelBuilder.Entity("HotelAPI.Models.Booking", b =>
+                {
+                    b.Navigation("BookingRooms");
+                });
+
             modelBuilder.Entity("HotelAPI.Models.HotelInfo", b =>
                 {
                     b.Navigation("HotelStaff");
+
+                    b.Navigation("RoomTypes");
                 });
 
             modelBuilder.Entity("HotelAPI.Models.SupplierCategory", b =>

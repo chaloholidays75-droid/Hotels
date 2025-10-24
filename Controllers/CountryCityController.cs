@@ -56,6 +56,7 @@ namespace HotelAPI.Controllers
                 Flag = c.Flag,
                 PhoneCode = c.PhoneCode,
                 PhoneNumberDigits = c.PhoneNumberDigits,
+                Region = c.Region,
                 Cities = c.Cities.Select(city => new CityDto
                 {
                     Id = city.Id,
@@ -66,32 +67,37 @@ namespace HotelAPI.Controllers
             return Ok(countryDtos);
         }
 
-        // GET: api/countries/{id}
-        [HttpGet("countries/{id}")]
-        public async Task<ActionResult<CountryDto>> GetCountry(int id)
+ // GET: api/countries/{id}
+[HttpGet("countries/{id}")]
+public async Task<ActionResult<CountryDto>> GetCountry(int id)
+{
+    var country = await _context.Countries
+        .Include(c => c.Cities)
+        .FirstOrDefaultAsync(c => c.Id == id);
+
+    if (country == null)
+        return NotFound(new { message = "Country not found" });
+
+    var dto = new CountryDto
+    {
+        Id = country.Id,
+        Name = country.Name,
+        Code = country.Code,
+        Flag = country.Flag,
+        PhoneCode = country.PhoneCode,
+        PhoneNumberDigits = country.PhoneNumberDigits,
+        Region = country.Region, // ✅ Added Region
+        Cities = country.Cities.Select(city => new CityDto
         {
-            var country = await _context.Countries
-                .Include(c => c.Cities)
-                .FirstOrDefaultAsync(c => c.Id == id);
+            Id = city.Id,
+            Name = city.Name,
+            CountryId = city.CountryId
+        }).ToList()
+    };
 
-            if (country == null)
-                return NotFound();
-
-            var dto = new CountryDto
-            {
-                Id = country.Id,
-                Name = country.Name,
-                Code = country.Code,
-                Cities = country.Cities.Select(city => new CityDto
-                {
-                    Id = city.Id,
-                    Name = city.Name,
-                    CountryId = city.CountryId
-                }).ToList()
-            };
-
-            return Ok(dto);
+    return Ok(dto);
 }
+
 
         // POST: api/countries
         [HttpPost("countries")]

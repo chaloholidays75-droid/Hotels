@@ -1,36 +1,34 @@
-using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using HotelAPI.Models;
 
 namespace HotelAPI.Models
 {
-    public class AgencyStaff : IAuditable
+    public class AgencyStaff : AuditableEntity
     {
-        [Key]
         public int Id { get; set; }
 
         [Required]
+        [ForeignKey("Agency")]
         public int AgencyId { get; set; }
-
-        [ForeignKey("AgencyId")]
-        public Agency Agency { get; set; } = null!;
+        public Agency? Agency { get; set; }
 
         [Required]
-        public string FirstName { get; set; } = null!;
+        [MaxLength(50)]
+        public string? Role { get; set; } // Sales, Reservation, Accounts, etc.
 
         [Required]
-        public string LastName { get; set; } = null!;
+        [MaxLength(120)]
+        public string? Name { get; set; }
 
-        [Required]
-        public string Email { get; set; } = null!;
+        [EmailAddress]
+        [MaxLength(150)]
+        public string? Email { get; set; }
 
-        public string? PhoneNo { get; set; }
+        [MaxLength(120)]
         public string? Designation { get; set; }
 
-        // Audit fields
-        public int? CreatedById { get; set; }
-        public int? UpdatedById { get; set; }
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+        [MaxLength(20)]
+        public string? Phone { get; set; }
     }
 }

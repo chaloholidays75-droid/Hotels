@@ -7,6 +7,7 @@ namespace HotelAPI.Models
     public class BookingRoom : AuditableEntity
     {
         [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
 
         [Required]

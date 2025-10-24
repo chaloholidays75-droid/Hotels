@@ -27,6 +27,7 @@ namespace HotelAPI.Data
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<Agency> Agencies { get; set; }
         public DbSet<AgencyStaff> AgencyStaff { get; set; }
+        public DbSet<Commercial> Commercials { get; set; }
 
         public DbSet<RecentActivity> RecentActivities { get; set; }
 
@@ -73,6 +74,12 @@ namespace HotelAPI.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<AgencyStaff>()
+                .HasOne(a => a.Agency)
+                .WithMany(b => b.Staff)
+                .HasForeignKey(a => a.AgencyId)
+                .OnDelete(DeleteBehavior.Cascade);
+                    
             modelBuilder.Entity<HotelStaff>()
                 .HasOne(s => s.HotelInfo)
                 .WithMany(h => h.HotelStaff)
@@ -90,6 +97,7 @@ namespace HotelAPI.Data
                 entity.Property(e => e.PhoneCode).HasColumnName("PhoneCode");
                 entity.Property(e => e.PhoneNumberDigits).HasColumnName("PhoneNumberDigits");
             });
+            
             modelBuilder.Entity<City>(entity =>
             {
                 entity.ToTable("Cities");

@@ -36,6 +36,12 @@ namespace HotelAPI.Models
         public string? SpecialRequest { get; set; }
         public string? Status { get; set; } = "Pending";
 
+        // ✅ Link to Commercial
+        public int? CommercialId { get; set; }
+
+        [ForeignKey(nameof(CommercialId))]
+        public Commercial? Commercial { get; set; }
+
         // Navigation: BookingRooms
         public virtual ICollection<BookingRoom> BookingRooms { get; set; } = new List<BookingRoom>();
     }

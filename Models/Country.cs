@@ -20,6 +20,7 @@ public class Country
 
     [Column("PhoneNumberDigits")]
     public int PhoneNumberDigits { get; set; }
+    public string? Region { get; set; }
 
     public ICollection<City> Cities { get; set; } = new List<City>();
 }

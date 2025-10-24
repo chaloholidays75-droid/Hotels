@@ -25,6 +25,11 @@ namespace AgencyManagementSystem.Controllers
         {
             _context = context;
         }
+        private int? GetUserIdNullable()
+        {
+            var s = User?.FindFirstValue(ClaimTypes.NameIdentifier);
+            return string.IsNullOrWhiteSpace(s) ? (int?)null : int.Parse(s);
+        }
 
         private async Task LogRecentActivityAsync(string entity, int entityId, string action, string description)
         {
@@ -57,6 +62,7 @@ namespace AgencyManagementSystem.Controllers
                     .Where(a => a.IsActive)
                     .Include(a => a.Country)
                     .Include(a => a.City)
+                    .Include(a => a.Staff)
                     .OrderByDescending(a => a.CreatedAt)
                     .ToListAsync();
                 return Ok(agencies);
@@ -123,6 +129,54 @@ namespace AgencyManagementSystem.Controllers
             _context.Agencies.Add(agency);
             await _context.SaveChangesAsync();
             await LogRecentActivityAsync("Agency", agency.Id, "CREATE", $"{agency.AgencyName} created");
+
+             if (dto.Staff is { Count: > 0 })
+    {
+        var uid = GetUserIdNullable();
+        var now = DateTime.UtcNow;
+
+        // de-dup incoming list client-side: same Name+Role for this agency
+        var seen = new HashSet<string>();
+        var toAdd = new List<AgencyStaff>();
+
+        foreach (var i in dto.Staff)
+        {
+            var role = (i.Role ?? "").Trim();
+            var name = (i.Name ?? "").Trim();
+            if (string.IsNullOrEmpty(role) || string.IsNullOrEmpty(name)) continue;
+
+            var key = $"{agency.Id}|{role.ToLower()}|{name.ToLower()}";
+            if (seen.Contains(key)) continue;
+            seen.Add(key);
+
+            // DB duplicate check too
+            bool exists = await _context.AgencyStaff.AnyAsync(s =>
+                s.AgencyId == agency.Id &&
+                s.Role.ToLower() == role.ToLower() &&
+                s.Name.ToLower() == name.ToLower());
+
+            if (exists) continue;
+
+            toAdd.Add(new AgencyStaff
+            {
+                AgencyId = agency.Id,
+                Role = role,
+                Designation = string.IsNullOrWhiteSpace(i.Designation) ? null : i.Designation.Trim(),
+                Name = name,
+                Email = string.IsNullOrWhiteSpace(i.Email) ? null : i.Email!.Trim(),
+                Phone = string.IsNullOrWhiteSpace(i.Phone) ? null : i.Phone!.Trim(),
+                CreatedById = uid,
+                CreatedAt = now
+            });
+        }
+
+        if (toAdd.Count > 0)
+        {
+            _context.AgencyStaff.AddRange(toAdd);
+            await _context.SaveChangesAsync();
+            await LogRecentActivityAsync("AgencyStaff", agency.Id, "BULK CREATE", $"{toAdd.Count} staff added to {agency.AgencyName}");
+        }
+    }
             // _ = SendWelcomeEmailAsync(agency.EmailId, agency.AgencyName);
 
             var responseDto = new AgencyRegistrationResponseDto
@@ -314,6 +368,64 @@ namespace AgencyManagementSystem.Controllers
             {
                 Console.WriteLine("Failed to send email: " + ex.Message);
             }
+        }
+        [Authorize(Roles = "Admin,Employee")]
+        [HttpPost("{id}/staff")]
+        public async Task<IActionResult> AddStaffBulk(int id, [FromBody] List<AgencyStaffItemDto> items)
+        {
+            if (items == null || items.Count == 0)
+                return BadRequest("No staff provided.");
+
+            var agency = await _context.Agencies.FirstOrDefaultAsync(a => a.Id == id && a.IsActive);
+            if (agency == null) return NotFound(new { message = "Agency not found" });
+
+            var uid = GetUserIdNullable();
+            var now = DateTime.UtcNow;
+
+            // client-side duplicate guard (in payload)
+            var seen = new HashSet<string>();
+            var toAdd = new List<AgencyStaff>();
+
+            foreach (var i in items)
+            {
+                var role = (i.Role ?? "").Trim();
+                var name = (i.Name ?? "").Trim();
+                if (string.IsNullOrEmpty(role) || string.IsNullOrEmpty(name)) continue;
+
+                var key = $"{id}|{role.ToLower()}|{name.ToLower()}";
+                if (seen.Contains(key)) continue;
+                seen.Add(key);
+
+                // DB duplicate guard (same Agency + Name + Role)
+                bool exists = await _context.AgencyStaff.AnyAsync(s =>
+                    s.AgencyId == id &&
+                    s.Role.ToLower() == role.ToLower() &&
+                    s.Name.ToLower() == name.ToLower());
+
+                if (exists) continue;
+
+                toAdd.Add(new AgencyStaff
+                {
+                    AgencyId = id,
+                    Role = role,
+                    Designation = string.IsNullOrWhiteSpace(i.Designation) ? null : i.Designation.Trim(),
+                    Name = name,
+                    Email = string.IsNullOrWhiteSpace(i.Email) ? null : i.Email!.Trim(),
+                    Phone = string.IsNullOrWhiteSpace(i.Phone) ? null : i.Phone!.Trim(),
+                    CreatedById = uid,
+                    CreatedAt = now
+                });
+            }
+
+            if (toAdd.Count == 0)
+                return Ok(new { added = 0, message = "No new staff added (duplicates or empty rows)" });
+
+            _context.AgencyStaff.AddRange(toAdd);
+            await _context.SaveChangesAsync();
+
+            await LogRecentActivityAsync("AgencyStaff", id, "BULK CREATE", $"{toAdd.Count} staff added to {agency.AgencyName}");
+
+            return Ok(new { added = toAdd.Count });
         }
     }
 }

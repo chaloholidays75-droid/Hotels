@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using HotelAPI.Data;
 using HotelAPI.Models;
 using Microsoft.AspNetCore.Authorization;
+using HotelAPI.Models.DTO;
 
 namespace HotelAPI.Controllers
 {

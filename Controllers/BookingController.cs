@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using HotelAPI.Data;
 using HotelAPI.Models;
 using Microsoft.AspNetCore.Authorization;
+using HotelAPI.Models.DTO;
 
 namespace HotelAPI.Controllers
 {
@@ -41,7 +42,7 @@ namespace HotelAPI.Controllers
                     b.CheckIn,
                     b.CheckOut,
                     b.NumberOfRooms,
-                    b.NumberOfPeople,
+                    NumberOfPeople = b.BookingRooms.Sum(r => (r.Adults ?? 0) + (r.Children ?? 0)),
                     b.Status,
                     Rooms = b.BookingRooms.Select(br => new
                     {
@@ -85,7 +86,7 @@ namespace HotelAPI.Controllers
                 booking.CheckIn,
                 booking.CheckOut,
                 booking.NumberOfRooms,
-                booking.NumberOfPeople,
+                NumberOfPeople = booking.BookingRooms.Sum(r => (r.Adults ?? 0) + (r.Children ?? 0)),
                 booking.Status,
                 Rooms = booking.BookingRooms.Select(r => new
                 {
@@ -102,120 +103,208 @@ namespace HotelAPI.Controllers
         // ------------------------
         // POST: api/BookingManagement
         // ------------------------
-[HttpPost]
-public async Task<ActionResult<object>> Create([FromBody] Booking booking)
-{
-    if (booking == null)
-        return BadRequest(new { message = "Invalid booking data." });
-
-    // ✅ Duplicate prevention
-    bool duplicateExists = await _context.Bookings.AnyAsync(b =>
-        b.HotelId == booking.HotelId &&
-        b.AgencyId == booking.AgencyId &&
-        b.SupplierId == booking.SupplierId &&
-        b.CheckIn == booking.CheckIn &&
-        b.CheckOut == booking.CheckOut);
-
-    if (duplicateExists)
-        return Conflict(new { message = "A booking already exists for these dates with the same hotel, agency, and supplier." });
-
-    // ✅ Assign a temporary non-null ticket number before saving
-    booking.TicketNumber = $"TEMP-{Guid.NewGuid()}";
-    booking.Status ??= "Pending";
-
-    _context.Bookings.Add(booking);
-    await _context.SaveChangesAsync();
-
-    // ✅ Now assign the final formatted ticket number
-    booking.TicketNumber = $"TICKET-{DateTime.UtcNow:yyyyMMddHHmm}-{booking.Id}";
-    await _context.SaveChangesAsync();
-
-    // ✅ Add related rooms
-    if (booking.BookingRooms != null && booking.BookingRooms.Any())
-    {
-        foreach (var room in booking.BookingRooms)
+        public static class BookingConverters
         {
-            // ✅ Handle new RoomType creation
-            if (room.RoomType != null && room.RoomType.Id == 0)
+            public static string? AgesToString(List<int>? ages)
+                => (ages == null || ages.Count == 0) ? null : string.Join(',', ages);
+
+            public static List<int> StringToAges(string? s)
             {
-                // Make sure we have a valid HotelId before linking it
-                if (booking.HotelId == null || booking.HotelId <= 0)
-                    return BadRequest(new { message = "HotelId is required when creating a new RoomType." });
-
-                // Verify that hotel actually exists
-                bool hotelExists = await _context.HotelInfo.AnyAsync(h => h.Id == booking.HotelId);
-                if (!hotelExists)
-                    return BadRequest(new { message = $"Hotel with Id {booking.HotelId} does not exist." });
-
-                room.RoomType.HotelId = booking.HotelId.Value;
-                _context.RoomTypes.Add(room.RoomType);
-                await _context.SaveChangesAsync();
-
-                room.RoomTypeId = room.RoomType.Id;
+                if (string.IsNullOrWhiteSpace(s)) return new();
+                return s.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(x => int.TryParse(x.Trim(), out var v) ? v : 0)
+                        .ToList();
             }
-
-
-            room.BookingId = booking.Id;
-            room.ChildrenAges = room.ChildrenAges?.Trim();
-            _context.BookingRooms.Add(room);
+        }
+        private static DateTime EnsureUtc(DateTime dt)
+        {
+            // If client sent ISO8601 with Z, Kind will already be Utc.
+            // If it's Unspecified, force to Utc to satisfy PostgreSQL (timestamptz).
+            return dt.Kind == DateTimeKind.Utc ? dt : DateTime.SpecifyKind(dt, DateTimeKind.Utc);
         }
 
-        await _context.SaveChangesAsync();
-    }
+        private static string? AgesToString(List<int>? ages)
+            => (ages == null || ages.Count == 0) ? null : string.Join(',', ages);
 
-    // ✅ Auto-calculate number of people
-    booking.NumberOfPeople = booking.BookingRooms.Sum(r => (r.Adults ?? 0) + (r.Children ?? 0));
-    await _context.SaveChangesAsync();
+        private static List<int> StringToAges(string? s)
+        {
+            if (string.IsNullOrWhiteSpace(s)) return new();
+            return s.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(x => int.TryParse(x.Trim(), out var v) ? v : 0)
+                    .ToList();
+        }
 
-    return CreatedAtAction(nameof(GetById), new { id = booking.Id }, booking);
-}
+        [HttpPost]
+        public async Task<IActionResult> Create([FromBody] BookingCreateDto dto)
+        {
+            if (dto == null || dto.BookingRooms == null || !dto.BookingRooms.Any())
+                return BadRequest(new { message = "Booking and at least one room are required." });
+
+            // Force UTC to satisfy timestamptz columns (and avoid Npgsql errors)
+            var checkInUtc  = EnsureUtc(dto.CheckIn);
+            var checkOutUtc = EnsureUtc(dto.CheckOut);
+
+            await using var tx = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                // 1) Create Booking (no temp ticket number)
+                var booking = new Booking
+                {
+                    AgencyId       = dto.AgencyId,
+                    SupplierId     = dto.SupplierId,
+                    HotelId        = dto.HotelId,
+                    CheckIn        = checkInUtc,
+                    CheckOut       = checkOutUtc,
+                    Status         = "Pending",
+                    NumberOfRooms  = dto.BookingRooms.Count,
+                    SpecialRequest = dto.SpecialRequest
+                };
+
+                _context.Bookings.Add(booking);
+                await _context.SaveChangesAsync(); // booking.Id is generated here
+
+                // 2) Insert Rooms
+                foreach (var roomDto in dto.BookingRooms)
+                {
+                    var room = new BookingRoom
+                    {
+                        BookingId     = booking.Id,
+                        RoomTypeId    = roomDto.RoomTypeId,
+                        Adults        = roomDto.Adults,
+                        Children      = roomDto.Children,
+                        ChildrenAges  = AgesToString(roomDto.ChildrenAges),
+                        CreatedAt     = DateTime.UtcNow,
+                        UpdatedAt     = DateTime.UtcNow
+                    };
+                    _context.BookingRooms.Add(room);
+                }
+                await _context.SaveChangesAsync();
+
+                // 3) Auto-calc totals
+                booking.NumberOfPeople = await _context.BookingRooms
+                    .Where(r => r.BookingId == booking.Id)
+                    .SumAsync(r => (r.Adults ?? 0) + (r.Children ?? 0));
+
+                // Nights (server-side): whole days between in/out; clamp at >= 0
+                var nights = (int)Math.Max(0, (checkOutUtc.Date - checkInUtc.Date).TotalDays);
+                // If EF column is computed, DB may overwrite; at least include in response below.
+
+                // 4) Final TicketNumber (your exact format)
+                booking.TicketNumber = $"TICKET-{DateTime.UtcNow:yyyyMMddHHmm}-{booking.Id}";
+
+                await _context.SaveChangesAsync();
+                await tx.CommitAsync();
+
+                // 5) Return full, clean object (childrenAges as array)
+                var result = await _context.Bookings
+                    .Include(b => b.BookingRooms).ThenInclude(br => br.RoomType)
+                    .Include(b => b.Hotel)
+                    .Include(b => b.Agency)
+                    .Include(b => b.Supplier)
+                    .Where(b => b.Id == booking.Id)
+                    .Select(b => new
+                    {
+                        b.Id,
+                        b.TicketNumber,
+                        b.Status,
+                        CheckIn  = b.CheckIn,
+                        CheckOut = b.CheckOut,
+                        Nights   = nights, // computed above; or b.Nights if your DB computes it
+                        b.NumberOfRooms,
+                        b.NumberOfPeople,
+                        HotelName    = b.Hotel != null ? b.Hotel.HotelName : null,
+                        AgencyName   = b.Agency != null ? b.Agency.AgencyName : null,
+                        SupplierName = b.Supplier != null ? b.Supplier.SupplierName : null,
+                        Rooms = b.BookingRooms.Select(r => new
+                        {
+                            r.Id,
+                            r.RoomTypeId,
+                            RoomTypeName = r.RoomType != null ? r.RoomType.Name : null,
+                            r.Adults,
+                            r.Children,
+                            ChildrenAges = StringToAges(r.ChildrenAges)
+                        })
+                    })
+                    .FirstAsync();
+
+                return Ok(new
+                {
+                    message = "Booking created successfully",
+                    booking = result
+                });
+            }
+            catch (Exception ex)
+            {
+                await tx.RollbackAsync();
+                return StatusCode(500, new { message = "Failed to create booking", error = ex.Message });
+            }
+        }
 
 
         // ------------------------
         // PUT: api/BookingManagement/{id}
         // ------------------------
-        [HttpPut("{id}")]
-        public async Task<ActionResult<object>> Update(int id, [FromBody] Booking booking)
+ [HttpPut("{id}")]
+public async Task<ActionResult<object>> Update(int id, [FromBody] BookingUpdateDto dto)
+{
+            if (dto == null)
+                return BadRequest("Booking data is required");
+
+     if (!ModelState.IsValid)
+    {
+        return BadRequest(ModelState);
+    }
+    var existing = await _context.Bookings
+        .Include(b => b.BookingRooms)
+        .FirstOrDefaultAsync(b => b.Id == id);
+
+    if (existing == null)
+        return NotFound();
+
+    try
+    {
+        // ✅ Update main fields
+        existing.HotelId = dto.HotelId ?? existing.HotelId;
+        existing.AgencyId = dto.AgencyId ?? existing.AgencyId;
+        existing.SupplierId = dto.SupplierId ?? existing.SupplierId;
+        existing.CheckIn = dto.CheckIn.HasValue ? EnsureUtc(dto.CheckIn.Value) : existing.CheckIn;
+        existing.CheckOut = dto.CheckOut.HasValue ? EnsureUtc(dto.CheckOut.Value) : existing.CheckOut;
+        existing.Status = dto.Status ?? existing.Status;
+        existing.SpecialRequest = dto.SpecialRequest ?? existing.SpecialRequest;
+
+        // ✅ Replace old rooms safely
+        _context.BookingRooms.RemoveRange(existing.BookingRooms);
+
+        if (dto.BookingRooms != null && dto.BookingRooms.Any())
         {
-            var existing = await _context.Bookings
-                .Include(b => b.BookingRooms)
-                .FirstOrDefaultAsync(b => b.Id == id);
-
-            if (existing == null)
-                return NotFound();
-
-            existing.HotelId = booking.HotelId ?? existing.HotelId;
-            existing.AgencyId = booking.AgencyId ?? existing.AgencyId;
-            existing.SupplierId = booking.SupplierId ?? existing.SupplierId;
-            existing.CheckIn = booking.CheckIn;
-            existing.CheckOut = booking.CheckOut;
-            existing.NumberOfRooms = booking.NumberOfRooms;
-            existing.Status = booking.Status ?? existing.Status;
-
-            _context.BookingRooms.RemoveRange(existing.BookingRooms);
-
-            if (booking.BookingRooms != null && booking.BookingRooms.Any())
+            foreach (var roomDto in dto.BookingRooms)
             {
-                foreach (var room in booking.BookingRooms)
+                _context.BookingRooms.Add(new BookingRoom
                 {
-                    if (room.RoomType != null && room.RoomType.Id == 0)
-                    {
-                        room.RoomType.HotelId = existing.HotelId ?? 0;
-                        _context.RoomTypes.Add(room.RoomType);
-                        await _context.SaveChangesAsync();
-                        room.RoomTypeId = room.RoomType.Id;
-                    }
-
-                    room.BookingId = existing.Id;
-                    _context.BookingRooms.Add(room);
-                }
+                    BookingId = existing.Id,
+                    RoomTypeId = roomDto.RoomTypeId,
+                    Adults = roomDto.Adults,
+                    Children = roomDto.Children,
+                    ChildrenAges = AgesToString(roomDto.ChildrenAges),
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                });
             }
-
-            existing.NumberOfPeople = booking.BookingRooms.Sum(r => (r.Adults ?? 0) + (r.Children ?? 0));
-            await _context.SaveChangesAsync();
-
-            return Ok(existing);
         }
+
+        // ✅ Auto update room count + people count
+        existing.NumberOfRooms = dto.BookingRooms?.Count ?? existing.NumberOfRooms;
+        existing.NumberOfPeople = dto.BookingRooms?.Sum(r => (r.Adults ?? 0) + (r.Children ?? 0)) ?? existing.NumberOfPeople;
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Booking updated successfully", booking = existing });
+    }
+    catch (Exception ex)
+    {
+        return StatusCode(500, new { message = "Failed to update booking", error = ex.Message });
+    }
+}
 
         // ------------------------
         // DELETE: api/BookingManagement/{id}
@@ -343,5 +432,78 @@ public async Task<ActionResult<object>> Create([FromBody] Booking booking)
 
             return Ok(hotels);
         }
+        // ------------------------
+        // POST: api/BookingManagement/create-with-commercial
+        // ------------------------
+        [HttpPost("create-with-commercial")]
+        public async Task<IActionResult> CreateWithCommercial([FromBody] BookingCommercialDTO dto)
+        {
+            if (dto == null || dto.Booking == null)
+                return BadRequest(new { message = "Invalid request payload." });
+
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+
+            try
+            {
+                // 1️⃣ Save Commercial first (if provided)
+                Commercial? commercial = null;
+                if (dto.Commercial != null)
+                {
+                    _context.Commercials.Add(dto.Commercial);
+                    await _context.SaveChangesAsync();
+                    commercial = dto.Commercial;
+                }
+
+                // 2️⃣ Prepare Booking
+                var booking = dto.Booking;
+
+                // Ensure UTC to prevent timestamptz errors
+                // ✅ Ensure UTC only if values are not null
+                if (booking.CheckIn.HasValue)
+                {
+                    booking.CheckIn = booking.CheckIn.Value.Kind == DateTimeKind.Utc
+                        ? booking.CheckIn
+                        : DateTime.SpecifyKind(booking.CheckIn.Value, DateTimeKind.Utc);
+                }
+
+                if (booking.CheckOut.HasValue)
+                {
+                    booking.CheckOut = booking.CheckOut.Value.Kind == DateTimeKind.Utc
+                        ? booking.CheckOut
+                        : DateTime.SpecifyKind(booking.CheckOut.Value, DateTimeKind.Utc);
+                }
+
+                booking.Status = string.IsNullOrEmpty(booking.Status) ? "Pending" : booking.Status;
+                booking.TicketNumber = $"TICKET-{DateTime.UtcNow:yyyyMMddHHmm}-{Guid.NewGuid().ToString("N")[..5]}";
+
+                // 3️⃣ Link Commercial if exists
+                if (commercial != null)
+                    booking.CommercialId = commercial.Id;
+
+                _context.Bookings.Add(booking);
+                await _context.SaveChangesAsync();
+
+                // 4️⃣ Commit
+                await transaction.CommitAsync();
+
+                return Ok(new
+                {
+                    message = "Booking and Commercial saved successfully.",
+                    bookingId = booking.Id,
+                    commercialId = commercial?.Id,
+                    ticket = booking.TicketNumber
+                });
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return StatusCode(500, new
+                {
+                    message = "Error saving booking with commercial data.",
+                    error = ex.Message
+                });
+            }
+        }
+
     }
 }

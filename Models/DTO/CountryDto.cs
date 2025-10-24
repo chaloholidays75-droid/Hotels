@@ -8,6 +8,7 @@ namespace HotelAPI.Models.DTO
         public string Flag { get; set; } = string.Empty; // optional if you want flag
         public string PhoneCode { get; set; } = string.Empty;
         public int PhoneNumberDigits { get; set; }
+        public string Region { get; set; } = string.Empty;
         public List<CityDto> Cities { get; set; } = new();  
     }
 }

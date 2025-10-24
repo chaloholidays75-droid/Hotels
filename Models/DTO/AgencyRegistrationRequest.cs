@@ -22,5 +22,7 @@ namespace HotelAPI.Models.DTO
         public string? Password { get; set; }
         public bool AcceptTerms { get; set; }
         public string? SpecialRemarks { get; set; }
+
+        public List<AgencyStaffItemDto>? Staff { get; set; }
     }
 }

@@ -1,5 +1,6 @@
 using System;
 
+
 namespace HotelAPI.Models
 {
     public class Agency : AuditableEntity
@@ -32,6 +33,8 @@ namespace HotelAPI.Models
         public string? Region { get; set; }
         public string? SpecialRemarks { get; set; }
         
+        public ICollection<AgencyStaff> Staff { get; set; } = new List<AgencyStaff>();
+
     }
 
 }

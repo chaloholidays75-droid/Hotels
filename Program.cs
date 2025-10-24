@@ -13,11 +13,11 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddAutoMapper(typeof(Program)); // Or specify a profile class
 
 // Add services to the container
-builder.Services.AddControllers(options =>
+builder.Services.AddControllers().AddJsonOptions(options =>
 {
-    // Apply ActivityLogFilter globally
-    // options.Filters.Add<ActivityLogFilter>();
+    options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
 });
+
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 
