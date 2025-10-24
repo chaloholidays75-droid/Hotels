@@ -9,7 +9,7 @@ namespace HotelAPI.Controllers
 {
     [ApiController]
     [Authorize]
-    [Route("api/[controller]")]
+    [Route("api/commercial")]
     public class CommercialController : ControllerBase
     {
         private readonly AppDbContext _context;
