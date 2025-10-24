@@ -32,14 +32,15 @@ namespace HotelAPI.Controllers
                 if (dto == null || dto.BookingId <= 0)
                 {
                     _logger.LogWarning("❌ Invalid payload or missing BookingId.");
-                    return BadRequest("Invalid payload. BookingId is required.");
+                    return BadRequest(new { error = "Invalid payload. BookingId is required." });
                 }
 
                 var booking = await _context.Bookings.FirstOrDefaultAsync(b => b.Id == dto.BookingId);
                 if (booking == null)
                 {
-                    _logger.LogWarning("⚠️ BookingId {BookingId} not found.", dto.BookingId);
-                    return NotFound("Booking not found.");
+                    string message = $"Booking with ID {dto.BookingId} not found (404).";
+                    _logger.LogWarning(message);
+                    return NotFound(new { error = message });
                 }
 
                 var entity = new Commercial
@@ -86,7 +87,7 @@ namespace HotelAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "💥 Error creating commercial for BookingId {BookingId}", dto?.BookingId);
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, new { error = $"Internal server error: {ex.Message}" });
             }
         }
 
@@ -99,7 +100,7 @@ namespace HotelAPI.Controllers
             try
             {
                 if (page < 1 || pageSize < 1)
-                    return BadRequest("Invalid pagination parameters.");
+                    return BadRequest(new { error = "Invalid pagination parameters." });
 
                 var data = await _context.Commercials
                     .Include(c => c.Booking).ThenInclude(b => b.Hotel)
@@ -120,6 +121,13 @@ namespace HotelAPI.Controllers
                     })
                     .ToListAsync();
 
+                if (data == null || data.Count == 0)
+                {
+                    string message = "No commercial records found (404).";
+                    _logger.LogWarning(message);
+                    return NotFound(new { error = message });
+                }
+
                 var total = await _context.Commercials.CountAsync();
                 _logger.LogInformation("✅ Returned {Count} records (Total={Total})", data.Count, total);
 
@@ -128,7 +136,7 @@ namespace HotelAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "💥 Error fetching all commercials.");
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, new { error = $"Internal server error: {ex.Message}" });
             }
         }
 
@@ -146,8 +154,9 @@ namespace HotelAPI.Controllers
 
                 if (data == null)
                 {
-                    _logger.LogWarning("⚠️ Commercial ID {Id} not found.", id);
-                    return NotFound("Commercial not found.");
+                    string message = $"Commercial with ID {id} not found (404).";
+                    _logger.LogWarning(message);
+                    return NotFound(new { error = message });
                 }
 
                 _logger.LogInformation("✅ Commercial ID {Id} found.", id);
@@ -156,7 +165,7 @@ namespace HotelAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "💥 Error fetching Commercial ID {Id}", id);
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, new { error = $"Internal server error: {ex.Message}" });
             }
         }
 
@@ -171,14 +180,15 @@ namespace HotelAPI.Controllers
                 if (bookingId <= 0)
                 {
                     _logger.LogWarning("❌ Invalid BookingId {BookingId}", bookingId);
-                    return BadRequest("Invalid BookingId.");
+                    return BadRequest(new { error = "Invalid BookingId." });
                 }
 
                 var bookingExists = await _context.Bookings.AnyAsync(b => b.Id == bookingId);
                 if (!bookingExists)
                 {
-                    _logger.LogWarning("⚠️ BookingId {BookingId} not found.", bookingId);
-                    return NotFound($"Booking ID {bookingId} not found.");
+                    string message = $"Booking ID {bookingId} not found (404).";
+                    _logger.LogWarning(message);
+                    return NotFound(new { error = message });
                 }
 
                 var data = await _context.Commercials
@@ -187,8 +197,9 @@ namespace HotelAPI.Controllers
 
                 if (data == null)
                 {
-                    _logger.LogWarning("📭 No commercial found for BookingId {BookingId}", bookingId);
-                    return NotFound($"No commercial found for booking ID {bookingId}.");
+                    string message = $"No commercial found for Booking ID {bookingId} (404).";
+                    _logger.LogWarning(message);
+                    return NotFound(new { error = message });
                 }
 
                 _logger.LogInformation("✅ Found Commercial ID {CommercialId} for BookingId {BookingId}.", data.Id, bookingId);
@@ -197,7 +208,7 @@ namespace HotelAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "💥 Exception while fetching commercial by bookingId {BookingId}", bookingId);
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, new { error = $"Internal server error: {ex.Message}" });
             }
         }
 
@@ -215,11 +226,11 @@ namespace HotelAPI.Controllers
 
                 if (existing == null)
                 {
-                    _logger.LogWarning("⚠️ Commercial ID {Id} not found.", id);
-                    return NotFound("Commercial not found.");
+                    string message = $"Commercial with ID {id} not found (404) - cannot update.";
+                    _logger.LogWarning(message);
+                    return NotFound(new { error = message });
                 }
 
-                // Update values
                 existing.BuyingCurrency = dto.BuyingCurrency ?? existing.BuyingCurrency;
                 existing.SellingCurrency = dto.SellingCurrency ?? existing.SellingCurrency;
                 existing.BuyingAmount = dto.BuyingAmount ?? existing.BuyingAmount;
@@ -250,39 +261,7 @@ namespace HotelAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "💥 Error updating Commercial ID {Id}", id);
-                return StatusCode(500, $"Internal server error: {ex.Message}");
-            }
-        }
-
-        // -------------------- DELETE --------------------
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
-        {
-            _logger.LogInformation("🗑️ [DELETE] /api/commercial/{Id} called", id);
-
-            try
-            {
-                var existing = await _context.Commercials.FirstOrDefaultAsync(c => c.Id == id);
-                if (existing == null)
-                {
-                    _logger.LogWarning("⚠️ Commercial ID {Id} not found.", id);
-                    return NotFound("Commercial not found.");
-                }
-
-                var booking = await _context.Bookings.FirstOrDefaultAsync(b => b.CommercialId == id);
-                if (booking != null)
-                    booking.CommercialId = null;
-
-                _context.Commercials.Remove(existing);
-                await _context.SaveChangesAsync();
-
-                _logger.LogInformation("✅ Commercial ID {Id} deleted.", id);
-                return Ok(new { message = "Commercial deleted successfully" });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "💥 Error deleting Commercial ID {Id}", id);
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, new { error = $"Internal server error: {ex.Message}" });
             }
         }
 
@@ -295,7 +274,7 @@ namespace HotelAPI.Controllers
             try
             {
                 if (string.IsNullOrWhiteSpace(query))
-                    return BadRequest("Search query is required.");
+                    return BadRequest(new { error = "Search query is required." });
 
                 query = query.ToLower();
 
@@ -317,49 +296,24 @@ namespace HotelAPI.Controllers
                     })
                     .ToListAsync();
 
+                if (results == null || results.Count == 0)
+                {
+                    string message = $"No commercial records match search '{query}' (404).";
+                    _logger.LogWarning(message);
+                    return NotFound(new { error = message });
+                }
+
                 _logger.LogInformation("✅ Search returned {Count} results for query '{Query}'", results.Count, query);
                 return Ok(results);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "💥 Error searching Commercials with query '{Query}'", query);
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, new { error = $"Internal server error: {ex.Message}" });
             }
         }
 
-        // -------------------- BOOKING DROPDOWN --------------------
-        [HttpGet("bookings-dropdown")]
-        public async Task<IActionResult> GetBookingsForDropdown()
-        {
-            _logger.LogInformation("📋 [GET] /api/commercial/bookings-dropdown called");
-
-            try
-            {
-                var bookings = await _context.Bookings
-                    .Include(b => b.Hotel)
-                    .Include(b => b.Agency)
-                    .OrderByDescending(b => b.Id)
-                    .Select(b => new
-                    {
-                        b.Id,
-                        b.TicketNumber,
-                        Hotel = b.Hotel.HotelName,
-                        Agency = b.Agency.AgencyName,
-                        b.CommercialId
-                    })
-                    .ToListAsync();
-
-                _logger.LogInformation("✅ Returned {Count} bookings for dropdown", bookings.Count);
-                return Ok(bookings);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "💥 Error fetching bookings for dropdown");
-                return StatusCode(500, $"Internal server error: {ex.Message}");
-            }
-        }
-
-        // -------------------- ANALYTICS SUMMARY --------------------
+        // -------------------- SUMMARY --------------------
         [HttpGet("summary")]
         public async Task<IActionResult> GetSummary()
         {
@@ -368,6 +322,13 @@ namespace HotelAPI.Controllers
             try
             {
                 var total = await _context.Commercials.CountAsync();
+                if (total == 0)
+                {
+                    string message = "No commercial data available to summarize (404).";
+                    _logger.LogWarning(message);
+                    return NotFound(new { error = message });
+                }
+
                 var totalProfit = await _context.Commercials.SumAsync(c => (decimal?)c.Profit) ?? 0;
                 var avgMargin = await _context.Commercials.AverageAsync(c => (decimal?)c.ProfitMarginPercent) ?? 0;
 
@@ -384,7 +345,7 @@ namespace HotelAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "💥 Error generating summary");
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, new { error = $"Internal server error: {ex.Message}" });
             }
         }
 
@@ -399,15 +360,17 @@ namespace HotelAPI.Controllers
                 var booking = await _context.Bookings.FirstOrDefaultAsync(b => b.Id == bookingId);
                 if (booking == null)
                 {
-                    _logger.LogWarning("⚠️ Booking {BookingId} not found.", bookingId);
-                    return NotFound($"Booking with ID {bookingId} not found.");
+                    string message = $"Booking with ID {bookingId} not found (404) - cannot link.";
+                    _logger.LogWarning(message);
+                    return NotFound(new { error = message });
                 }
 
                 var commercial = await _context.Commercials.FirstOrDefaultAsync(c => c.Id == commercialId);
                 if (commercial == null)
                 {
-                    _logger.LogWarning("⚠️ Commercial {CommercialId} not found.", commercialId);
-                    return NotFound($"Commercial with ID {commercialId} not found.");
+                    string message = $"Commercial with ID {commercialId} not found (404) - cannot link.";
+                    _logger.LogWarning(message);
+                    return NotFound(new { error = message });
                 }
 
                 booking.CommercialId = commercialId;
@@ -424,7 +387,7 @@ namespace HotelAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "💥 Error linking Booking {BookingId} to Commercial {CommercialId}", bookingId, commercialId);
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, new { error = $"Internal server error: {ex.Message}" });
             }
         }
     }
