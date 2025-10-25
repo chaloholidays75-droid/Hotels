@@ -390,5 +390,28 @@ namespace HotelAPI.Controllers
                 return StatusCode(500, new { error = $"Internal server error: {ex.Message}" });
             }
         }
+        [HttpGet("bookings-dropdown")]
+public async Task<IActionResult> GetBookingsDropdown()
+{
+    var bookings = await _context.Bookings
+        .Include(b => b.Hotel)
+        .Include(b => b.Agency)
+        .OrderByDescending(b => b.Id)
+        .Select(b => new
+        {
+            id = b.Id,
+            ticketNumber = b.TicketNumber,
+            hotel = b.Hotel != null ? b.Hotel.HotelName : "N/A",
+            agency = b.Agency != null ? b.Agency.AgencyName : "N/A",
+            supplier = b.Supplier != null ? b.Supplier.SupplierName : "N/A",
+            checkIn = b.CheckIn,
+            checkOut = b.CheckOut
+            
+        })
+        .ToListAsync();
+
+    return Ok(bookings);
+}
+
     }
 }
