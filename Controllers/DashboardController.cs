@@ -97,40 +97,59 @@ public async Task<IActionResult> GetBookingsTrend()
         // ===============================================================
         // 4️⃣ FINANCIAL TRENDS (LINE CHART)
         // ===============================================================
-        [HttpGet("financial-trend")]
-        public async Task<IActionResult> GetFinancialTrend()
+[HttpGet("financial-trends")]
+public async Task<IActionResult> GetFinancialTrends()
+{
+    try
+    {
+        var sixMonthsAgo = DateTime.UtcNow.AddMonths(-6);
+
+        // 1️⃣ Run the database query fully async (server-side)
+        var grouped = await _context.Commercials
+            .Where(c => c.CreatedAt >= sixMonthsAgo)
+            .GroupBy(c => new { c.CreatedAt.Year, c.CreatedAt.Month })
+            .Select(g => new
+            {
+                Year = g.Key.Year,
+                Month = g.Key.Month,
+                Revenue = g.Sum(e => (decimal?)e.SellingPrice ?? 0),
+                Cost = g.Sum(e => (decimal?)e.BuyingAmount ?? 0),
+                Profit = g.Sum(e => (decimal?)e.Profit ?? 0),
+                AvgProfitMargin = g.Average(e => (decimal?)e.ProfitMarginPercent ?? 0),
+                AvgMarkup = g.Average(e => (decimal?)e.MarkupPercent ?? 0),
+                AvgVatPercent = g.Average(e => (decimal?)e.SellingVatPercent ?? 0)
+            })
+            .OrderBy(x => x.Year)
+            .ThenBy(x => x.Month)
+            .ToListAsync();
+
+        // 2️⃣ Format the results in-memory (client-side)
+        var trends = grouped
+            .Select(x => new
+            {
+                Month = new DateTime(x.Year, x.Month, 1).ToString("MMM yyyy"),
+                x.Revenue,
+                x.Cost,
+                x.Profit,
+                x.AvgProfitMargin,
+                x.AvgMarkup,
+                x.AvgVatPercent
+            })
+            .ToList();
+
+        return Ok(trends);
+    }
+    catch (Exception ex)
+    {
+        return StatusCode(500, new
         {
-            try
-            {
-                var sixMonthsAgo = DateTime.UtcNow.AddMonths(-6);
+            message = "Error fetching financial trends",
+            error = ex.Message
+        });
+    }
+}
 
-                var data = await _context.Commercials
-                    .Where(c => c.CreatedAt >= sixMonthsAgo)
-                    .GroupBy(c => new
-                    {
-                        Year = c.CreatedAt.Year,
-                        Month = c.CreatedAt.Month
-                    })
-                    .Select(g => new
-                    {
-                        Month = $"{new DateTime(g.Key.Year, g.Key.Month, 1):MMM yyyy}",
-                        Revenue = g.Sum(x => (decimal?)x.SellingPrice ?? 0),
-                        Cost = g.Sum(x => (decimal?)x.BuyingAmount ?? 0),
-                        Profit = g.Sum(x => (decimal?)x.Profit ?? 0),
-                        AvgProfitMargin = g.Average(x => (decimal?)x.ProfitMarginPercent ?? 0),
-                        AvgMarkup = g.Average(x => (decimal?)x.MarkupPercent ?? 0),
-                        AvgVatPercent = g.Average(x => (decimal?)x.SellingVatPercent ?? 0)
-                    })
-                    .OrderBy(g => g.Month)
-                    .ToListAsync();
 
-                return Ok(data);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Error fetching financial trends", error = ex.Message });
-            }
-        }
 
         // ===============================================================
         // 5️⃣ REVENUE BY COUNTRY (MAP / BAR CHART)
