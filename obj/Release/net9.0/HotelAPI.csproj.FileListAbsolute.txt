@@ -1,3 +1,4 @@
+D:\github\Hotels\bin\Release\net9.0\publish\web.config
 D:\github\Hotels\bin\Release\net9.0\appsettings.Development.json
 D:\github\Hotels\bin\Release\net9.0\appsettings.json
 D:\github\Hotels\bin\Release\net9.0\publish\appsettings.Development.json
@@ -5,6 +6,11 @@ D:\github\Hotels\bin\Release\net9.0\publish\appsettings.json
 D:\github\Hotels\bin\Release\net9.0\publish\HotelAPI.deps.json
 D:\github\Hotels\bin\Release\net9.0\publish\HotelAPI.runtimeconfig.json
 D:\github\Hotels\bin\Release\net9.0\publish\HotelAPI.staticwebassets.endpoints.json
+D:\github\Hotels\bin\Release\net9.0\publish\publish\appsettings.Development.json
+D:\github\Hotels\bin\Release\net9.0\publish\publish\appsettings.json
+D:\github\Hotels\bin\Release\net9.0\publish\publish\HotelAPI.deps.json
+D:\github\Hotels\bin\Release\net9.0\publish\publish\HotelAPI.runtimeconfig.json
+D:\github\Hotels\bin\Release\net9.0\publish\publish\HotelAPI.staticwebassets.endpoints.json
 D:\github\Hotels\bin\Release\net9.0\HotelAPI.staticwebassets.endpoints.json
 D:\github\Hotels\bin\Release\net9.0\HotelAPI.exe
 D:\github\Hotels\bin\Release\net9.0\HotelAPI.deps.json
@@ -141,9 +147,3 @@ D:\github\Hotels\obj\Release\net9.0\refint\HotelAPI.dll
 D:\github\Hotels\obj\Release\net9.0\HotelAPI.pdb
 D:\github\Hotels\obj\Release\net9.0\HotelAPI.genruntimeconfig.cache
 D:\github\Hotels\obj\Release\net9.0\ref\HotelAPI.dll
-D:\github\Hotels\bin\Release\net9.0\publish\web.config
-D:\github\Hotels\bin\Release\net9.0\publish\publish\appsettings.Development.json
-D:\github\Hotels\bin\Release\net9.0\publish\publish\appsettings.json
-D:\github\Hotels\bin\Release\net9.0\publish\publish\HotelAPI.deps.json
-D:\github\Hotels\bin\Release\net9.0\publish\publish\HotelAPI.runtimeconfig.json
-D:\github\Hotels\bin\Release\net9.0\publish\publish\HotelAPI.staticwebassets.endpoints.json
