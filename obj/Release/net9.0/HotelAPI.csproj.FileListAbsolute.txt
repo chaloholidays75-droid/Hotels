@@ -31,16 +31,7 @@ D:\github\Hotels\bin\Release\net9.0\Microsoft.EntityFrameworkCore.dll
 D:\github\Hotels\bin\Release\net9.0\Microsoft.EntityFrameworkCore.Abstractions.dll
 D:\github\Hotels\bin\Release\net9.0\Microsoft.EntityFrameworkCore.Design.dll
 D:\github\Hotels\bin\Release\net9.0\Microsoft.EntityFrameworkCore.Relational.dll
-D:\github\Hotels\bin\Release\net9.0\Microsoft.Extensions.Caching.Abstractions.dll
-D:\github\Hotels\bin\Release\net9.0\Microsoft.Extensions.Caching.Memory.dll
-D:\github\Hotels\bin\Release\net9.0\Microsoft.Extensions.Configuration.Abstractions.dll
-D:\github\Hotels\bin\Release\net9.0\Microsoft.Extensions.DependencyInjection.dll
-D:\github\Hotels\bin\Release\net9.0\Microsoft.Extensions.DependencyInjection.Abstractions.dll
 D:\github\Hotels\bin\Release\net9.0\Microsoft.Extensions.DependencyModel.dll
-D:\github\Hotels\bin\Release\net9.0\Microsoft.Extensions.Logging.dll
-D:\github\Hotels\bin\Release\net9.0\Microsoft.Extensions.Logging.Abstractions.dll
-D:\github\Hotels\bin\Release\net9.0\Microsoft.Extensions.Options.dll
-D:\github\Hotels\bin\Release\net9.0\Microsoft.Extensions.Primitives.dll
 D:\github\Hotels\bin\Release\net9.0\Microsoft.IdentityModel.Abstractions.dll
 D:\github\Hotels\bin\Release\net9.0\Microsoft.IdentityModel.JsonWebTokens.dll
 D:\github\Hotels\bin\Release\net9.0\Microsoft.IdentityModel.Logging.dll
@@ -62,7 +53,6 @@ D:\github\Hotels\bin\Release\net9.0\System.Composition.Hosting.dll
 D:\github\Hotels\bin\Release\net9.0\System.Composition.Runtime.dll
 D:\github\Hotels\bin\Release\net9.0\System.Composition.TypedParts.dll
 D:\github\Hotels\bin\Release\net9.0\System.IdentityModel.Tokens.Jwt.dll
-D:\github\Hotels\bin\Release\net9.0\System.Text.Json.dll
 D:\github\Hotels\bin\Release\net9.0\cs\Microsoft.CodeAnalysis.resources.dll
 D:\github\Hotels\bin\Release\net9.0\de\Microsoft.CodeAnalysis.resources.dll
 D:\github\Hotels\bin\Release\net9.0\es\Microsoft.CodeAnalysis.resources.dll
@@ -151,3 +141,9 @@ D:\github\Hotels\obj\Release\net9.0\refint\HotelAPI.dll
 D:\github\Hotels\obj\Release\net9.0\HotelAPI.pdb
 D:\github\Hotels\obj\Release\net9.0\HotelAPI.genruntimeconfig.cache
 D:\github\Hotels\obj\Release\net9.0\ref\HotelAPI.dll
+D:\github\Hotels\bin\Release\net9.0\publish\web.config
+D:\github\Hotels\bin\Release\net9.0\publish\publish\appsettings.Development.json
+D:\github\Hotels\bin\Release\net9.0\publish\publish\appsettings.json
+D:\github\Hotels\bin\Release\net9.0\publish\publish\HotelAPI.deps.json
+D:\github\Hotels\bin\Release\net9.0\publish\publish\HotelAPI.runtimeconfig.json
+D:\github\Hotels\bin\Release\net9.0\publish\publish\HotelAPI.staticwebassets.endpoints.json
