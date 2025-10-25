@@ -74,25 +74,39 @@ namespace HotelAPI.Controllers
         // ===============================================================
         // 3️⃣ MONTHLY BOOKINGS TREND (LINE CHART)
         // ===============================================================
- [HttpGet("bookings-trend")]
+[HttpGet("bookings-trend")]
 public async Task<IActionResult> GetBookingsTrend()
 {
-    var data = await _context.Bookings
-        .Where(b => b.CheckIn.HasValue) // ✅ only take rows with CheckIn date
-        .GroupBy(b => new { 
-            Year = b.CheckIn.Value.Year, 
-            Month = b.CheckIn.Value.Month 
+    // Step 1: Query raw data — only what EF can translate
+    var rawData = await _context.Bookings
+        .Where(b => b.CheckIn.HasValue)
+        .GroupBy(b => new
+        {
+            Year = b.CheckIn.Value.Year,
+            Month = b.CheckIn.Value.Month
         })
         .Select(g => new
         {
-            Month = $"{new DateTime(g.Key.Year, g.Key.Month, 1):MMM yyyy}",
+            g.Key.Year,
+            g.Key.Month,
             TotalBookings = g.Count()
         })
-        .OrderBy(g => g.Month)
-        .ToListAsync();
+        .OrderBy(g => g.Year)
+        .ThenBy(g => g.Month)
+        .ToListAsync();  // ✅ query executed here in SQL
 
-    return Ok(data);
+    // Step 2: Format the month string on the client (in memory)
+    var formattedData = rawData
+        .Select(g => new
+        {
+            Month = new DateTime(g.Year, g.Month, 1).ToString("MMM yyyy"),
+            g.TotalBookings
+        })
+        .ToList();
+
+    return Ok(formattedData);
 }
+
 
         // ===============================================================
         // 4️⃣ FINANCIAL TRENDS (LINE CHART)
