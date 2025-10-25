@@ -10,7 +10,7 @@ namespace HotelAPI.Controllers
 {
     [ApiController]
     [Authorize]
-    [Route("api/[controller]")]
+    [Route("api/dashboard")]
     public class DashboardController : ControllerBase
     {
         private readonly AppDbContext _context;
