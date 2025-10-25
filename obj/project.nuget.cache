@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "3dCYOHS/T2Q=",
+  "dgSpecHash": "/Ro5Udd7OSU=",
   "success": true,
   "projectFilePath": "D:\\github\\Hotels\\HotelAPI.csproj",
   "expectedPackageFiles": [
@@ -80,18 +80,5 @@
     "C:\\Users\\Chaloholiday\\.nuget\\packages\\system.threading.channels\\7.0.0\\system.threading.channels.7.0.0.nupkg.sha512",
     "C:\\Users\\Chaloholiday\\.nuget\\packages\\system.windows.extensions\\4.7.0\\system.windows.extensions.4.7.0.nupkg.sha512"
   ],
-  "logs": [
-    {
-      "code": "NU1603",
-      "level": "Warning",
-      "message": "HotelAPI depends on Microsoft.CodeAnalysis.Analyzers (>= 3.3.5) but Microsoft.CodeAnalysis.Analyzers 3.3.5 was not found. Microsoft.CodeAnalysis.Analyzers 3.11.0 was resolved instead.",
-      "projectPath": "D:\\github\\Hotels\\HotelAPI.csproj",
-      "warningLevel": 1,
-      "filePath": "D:\\github\\Hotels\\HotelAPI.csproj",
-      "libraryId": "Microsoft.CodeAnalysis.Analyzers",
-      "targetGraphs": [
-        "net9.0"
-      ]
-    }
-  ]
+  "logs": []
 }
