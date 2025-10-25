@@ -104,7 +104,7 @@ public async Task<IActionResult> GetFinancialTrends()
     {
         var sixMonthsAgo = DateTime.UtcNow.AddMonths(-6);
 
-        // 1️⃣ Run the database query fully async (server-side)
+        // 1️⃣ Run the database query fully async (server-side) // new
         var grouped = await _context.Commercials
             .Where(c => c.CreatedAt >= sixMonthsAgo)
             .GroupBy(c => new { c.CreatedAt.Year, c.CreatedAt.Month })
