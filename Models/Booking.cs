@@ -34,7 +34,7 @@ namespace HotelAPI.Models
         public int? NumberOfPeople { get; set; }
 
         public string? SpecialRequest { get; set; }
-        public string? Status { get; set; } = "Pending";
+        public string? Status { get; set; } = "Confirmed";
 
         // ✅ Link to Commercial
         public int? CommercialId { get; set; }
