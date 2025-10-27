@@ -155,7 +155,7 @@ namespace HotelAPI.Controllers
                     HotelId        = dto.HotelId,
                     CheckIn        = checkInUtc,
                     CheckOut       = checkOutUtc,
-                    Status         = "Pending",
+                    Status         = "Confirmed",
                     NumberOfRooms  = dto.BookingRooms.Count,
                     SpecialRequest = dto.SpecialRequest
                 };
@@ -473,7 +473,7 @@ public async Task<ActionResult<object>> Update(int id, [FromBody] BookingUpdateD
                         : DateTime.SpecifyKind(booking.CheckOut.Value, DateTimeKind.Utc);
                 }
 
-                booking.Status = string.IsNullOrEmpty(booking.Status) ? "Pending" : booking.Status;
+                booking.Status = string.IsNullOrEmpty(booking.Status) ? "Confirmed" : booking.Status;
                 booking.TicketNumber = $"TICKET-{DateTime.UtcNow:yyyyMMddHHmm}-{Guid.NewGuid().ToString("N")[..5]}";
 
                 // 3️⃣ Link Commercial if exists

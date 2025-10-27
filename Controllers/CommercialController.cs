@@ -406,7 +406,7 @@ public async Task<IActionResult> GetBookingsDropdown()
             supplier = b.Supplier != null ? b.Supplier.SupplierName : "N/A",
             checkIn = b.CheckIn,
             checkOut = b.CheckOut
-            
+
         })
         .ToListAsync();
 
