@@ -22,7 +22,9 @@ namespace HotelAPI.Controllers
             _logger = logger;
         }
 
-        // ✅ WHOAMI (for debugging)
+        // ------------------------------------------------------------
+        // ✅ WHOAMI — For Debugging
+        // ------------------------------------------------------------
         [HttpGet("whoami")]
         public IActionResult WhoAmI()
         {
@@ -31,18 +33,13 @@ namespace HotelAPI.Controllers
                 Id = User.FindFirstValue("id"),
                 FirstName = User.FindFirstValue("firstName"),
                 LastName = User.FindFirstValue("lastName"),
-                Name = User.FindFirstValue(ClaimTypes.Name)
+                Role = User.FindFirstValue(ClaimTypes.Role)
             });
         }
 
-        [HttpGet]
-        public IActionResult GetAllUsers()
-        {
-            var users = _context.Users.ToList();
-            return Ok(users);
-        }
-
+        // ------------------------------------------------------------
         // ✅ REGISTER
+        // ------------------------------------------------------------
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterRequest request)
         {
@@ -68,41 +65,57 @@ namespace HotelAPI.Controllers
             }
         }
 
-        // ✅ LOGIN — issues secure cookies
+        // ------------------------------------------------------------
+        // ✅ LOGIN — Sets Secure Cookies + Returns JWT
+        // ------------------------------------------------------------
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
             try
             {
-                var authResponse = await _authService.LoginAsync(request);
+                var auth = await _authService.LoginAsync(request);
 
-                // Determine expiry time based on RememberMe flag
-                var rememberMe = request.RememberMe;
-                var accessExpiry = rememberMe ? DateTime.UtcNow.AddDays(30) : DateTime.UtcNow.AddHours(1);
-                var refreshExpiry = rememberMe ? DateTime.UtcNow.AddDays(60) : DateTime.UtcNow.AddDays(7);
-
-                // 🍪 Set cookies
-                Response.Cookies.Append("accessToken", authResponse.AccessToken, new CookieOptions
+                var cookieOptsShort = new CookieOptions
                 {
                     HttpOnly = true,
                     Secure = true,
-                    SameSite = SameSiteMode.Strict,
-                    Expires = accessExpiry
-                });
-
-                Response.Cookies.Append("refreshToken", authResponse.RefreshToken, new CookieOptions
+                    SameSite = SameSiteMode.None,
+                    Domain = ".chaloholidayonline.com",
+                    Expires = DateTime.UtcNow.AddMinutes(30)
+                };
+                var cookieOptsLong = new CookieOptions
                 {
                     HttpOnly = true,
                     Secure = true,
-                    SameSite = SameSiteMode.Strict,
-                    Expires = refreshExpiry
-                });
+                    SameSite = SameSiteMode.None,
+                    Domain = ".chaloholidayonline.com",
+                    Expires = DateTime.UtcNow.AddDays(7)
+                };
+
+                Response.Cookies.Append("accessToken", auth.AccessToken, cookieOptsShort);
+                Response.Cookies.Append("refreshToken", auth.RefreshToken, cookieOptsLong);
+
+                if (request.RememberMe && !string.IsNullOrEmpty(auth.RememberToken))
+                {
+                    var rememberOpts = new CookieOptions
+                    {
+                        HttpOnly = true,
+                        Secure = true,
+                        SameSite = SameSiteMode.None,
+                        Domain = ".chaloholidayonline.com",
+                        Expires = DateTime.UtcNow.AddDays(30)
+                    };
+                    Response.Cookies.Append("rememberToken", auth.RememberToken, rememberOpts);
+                }
 
                 return Ok(new
                 {
                     message = "Login successful",
-                    userFullName = $"{authResponse.User.FirstName} {authResponse.User.LastName}",
-                    userRole = authResponse.User.Role
+                    userFullName = $"{auth.User.FirstName} {auth.User.LastName}",
+                    userRole = auth.User.Role,
+                    accessToken = auth.AccessToken,
+                    refreshToken = auth.RefreshToken,
+                    rememberToken = auth.RememberToken
                 });
             }
             catch (Exception ex)
@@ -112,53 +125,105 @@ namespace HotelAPI.Controllers
             }
         }
 
-        // ✅ FORGOT PASSWORD
-        [HttpPost("forgot-password")]
-        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
+        // ------------------------------------------------------------
+        // ✅ AUTO-LOGIN — via Remember Token Cookie
+        // ------------------------------------------------------------
+        [HttpPost("auto-login")]
+        public async Task<IActionResult> AutoLogin()
         {
-            await _authService.SendForgotPasswordEmailAsync(request);
-            return Ok("Email sent if account exists.");
+            var token = Request.Cookies["rememberToken"];
+            if (string.IsNullOrEmpty(token))
+                return Unauthorized(new { message = "No remember token found" });
+
+            try
+            {
+                var auth = await _authService.LoginWithRememberTokenAsync(token);
+
+                var cookieOptsShort = new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.None,
+                    Domain = ".chaloholidayonline.com",
+                    Expires = DateTime.UtcNow.AddMinutes(30)
+                };
+                var cookieOptsLong = new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.None,
+                    Domain = ".chaloholidayonline.com",
+                    Expires = DateTime.UtcNow.AddDays(7)
+                };
+                var cookieOptsRemember = new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.None,
+                    Domain = ".chaloholidayonline.com",
+                    Expires = DateTime.UtcNow.AddDays(30)
+                };
+
+                Response.Cookies.Append("accessToken", auth.AccessToken, cookieOptsShort);
+                Response.Cookies.Append("refreshToken", auth.RefreshToken, cookieOptsLong);
+                Response.Cookies.Append("rememberToken", auth.RememberToken, cookieOptsRemember);
+
+                return Ok(new
+                {
+                    message = "Auto-login successful",
+                    userFullName = $"{auth.User.FirstName} {auth.User.LastName}",
+                    userRole = auth.User.Role,
+                    accessToken = auth.AccessToken,
+                    refreshToken = auth.RefreshToken
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Auto-login failed");
+                return Unauthorized(new { message = ex.Message });
+            }
         }
 
-        // ✅ RESET PASSWORD
-        [HttpPost("reset-password")]
-        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
-        {
-            await _authService.ResetPasswordAsync(request);
-            return Ok("Password reset successful.");
-        }
-
-        // ✅ REFRESH TOKEN — uses cookies
+        // ------------------------------------------------------------
+        // ✅ REFRESH TOKEN — via Cookie or Body
+        // ------------------------------------------------------------
         [HttpPost("refresh-token")]
-        public async Task<IActionResult> RefreshToken()
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest? body)
         {
             try
             {
-                var cookieToken = Request.Cookies["refreshToken"];
-                if (string.IsNullOrEmpty(cookieToken))
+                var token = body?.RefreshToken ?? Request.Cookies["refreshToken"];
+                if (string.IsNullOrEmpty(token))
                     return Unauthorized(new { message = "No refresh token found" });
 
-                var authResponse = await _authService.RefreshTokenAsync(
-                    new RefreshTokenRequest { RefreshToken = cookieToken }
-                );
+                var auth = await _authService.RefreshTokenAsync(new RefreshTokenRequest { RefreshToken = token });
 
-                Response.Cookies.Append("accessToken", authResponse.AccessToken, new CookieOptions
+                var cookieOptsShort = new CookieOptions
                 {
                     HttpOnly = true,
                     Secure = true,
-                    SameSite = SameSiteMode.Strict,
-                    Expires = DateTime.UtcNow.AddHours(1)
-                });
-
-                Response.Cookies.Append("refreshToken", authResponse.RefreshToken, new CookieOptions
+                    SameSite = SameSiteMode.None,
+                    Domain = ".chaloholidayonline.com",
+                    Expires = DateTime.UtcNow.AddMinutes(30)
+                };
+                var cookieOptsLong = new CookieOptions
                 {
                     HttpOnly = true,
                     Secure = true,
-                    SameSite = SameSiteMode.Strict,
+                    SameSite = SameSiteMode.None,
+                    Domain = ".chaloholidayonline.com",
                     Expires = DateTime.UtcNow.AddDays(7)
-                });
+                };
 
-                return Ok(new { message = "Token refreshed successfully" });
+                Response.Cookies.Append("accessToken", auth.AccessToken, cookieOptsShort);
+                Response.Cookies.Append("refreshToken", auth.RefreshToken, cookieOptsLong);
+
+                return Ok(new
+                {
+                    message = "Token refreshed successfully",
+                    accessToken = auth.AccessToken,
+                    refreshToken = auth.RefreshToken
+                });
             }
             catch (Exception ex)
             {
@@ -167,16 +232,63 @@ namespace HotelAPI.Controllers
             }
         }
 
-        // ✅ LOGOUT — clear cookies
+        // ------------------------------------------------------------
+        // ✅ LOGOUT — Clears Cookies + Revokes Tokens
+        // ------------------------------------------------------------
         [HttpPost("logout")]
-        public IActionResult Logout()
+        public async Task<IActionResult> Logout([FromBody] LogoutRequest? request)
         {
-            Response.Cookies.Delete("accessToken");
-            Response.Cookies.Delete("refreshToken");
-            return Ok(new { message = "Logged out successfully" });
+            try
+            {
+                // revoke refresh token if provided
+                if (request != null && !string.IsNullOrEmpty(request.RefreshToken))
+                    await _authService.LogoutAsync(request);
+
+                var remember = Request.Cookies["rememberToken"];
+                if (!string.IsNullOrEmpty(remember))
+                    await _authService.RevokeRememberTokenAsync(remember);
+
+                var opts = new CookieOptions
+                {
+                    Expires = DateTime.UnixEpoch,
+                    Domain = ".chaloholidayonline.com",
+                    Secure = true,
+                    SameSite = SameSiteMode.None,
+                    HttpOnly = true
+                };
+                Response.Cookies.Append("accessToken", "", opts);
+                Response.Cookies.Append("refreshToken", "", opts);
+                Response.Cookies.Append("rememberToken", "", opts);
+
+                return Ok(new { message = "Logged out successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Logout failed");
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
-        // ✅ PROTECTED ROUTE
+        // ------------------------------------------------------------
+        // ✅ PASSWORD FLOWS
+        // ------------------------------------------------------------
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
+        {
+            await _authService.SendForgotPasswordEmailAsync(request);
+            return Ok("Email sent if account exists.");
+        }
+
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
+        {
+            await _authService.ResetPasswordAsync(request);
+            return Ok("Password reset successful.");
+        }
+
+        // ------------------------------------------------------------
+        // ✅ AUTHORIZED PROFILE
+        // ------------------------------------------------------------
         [HttpGet("me")]
         [Authorize]
         public IActionResult GetCurrentUser()

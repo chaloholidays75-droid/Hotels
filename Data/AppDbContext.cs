@@ -28,6 +28,7 @@ namespace HotelAPI.Data
         public DbSet<Agency> Agencies { get; set; }
         public DbSet<AgencyStaff> AgencyStaff { get; set; }
         public DbSet<Commercial> Commercials { get; set; }
+        public DbSet<RememberToken> RememberTokens { get; set; } = null!;
 
         public DbSet<RecentActivity> RecentActivities { get; set; }
 
@@ -74,6 +75,17 @@ namespace HotelAPI.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<RememberToken>(e =>
+            {
+                e.HasKey(x => x.Id);
+                e.HasIndex(x => x.Token).IsUnique();
+                e.Property(x => x.Token).HasMaxLength(256).IsRequired();
+                e.HasOne(x => x.User)
+                    .WithMany()
+                    .HasForeignKey(x => x.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
             modelBuilder.Entity<AgencyStaff>()
                 .HasOne(a => a.Agency)
                 .WithMany(b => b.Staff)

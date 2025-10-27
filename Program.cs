@@ -5,61 +5,74 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using HotelAPI.Services;
-// using HotelAPI.Filters;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add AutoMapper
-builder.Services.AddAutoMapper(typeof(Program)); // Or specify a profile class
+// ------------------------------------------------------
+// 🧭 Logging
+// ------------------------------------------------------
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
 
-// Add services to the container
+// ------------------------------------------------------
+// 🧩 Controllers + JSON options
+// ------------------------------------------------------
 builder.Services.AddControllers().AddJsonOptions(o =>
 {
     o.JsonSerializerOptions.ReferenceHandler =
         System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
 });
 
-
-builder.Logging.ClearProviders();
-builder.Logging.AddConsole();
-
-
-// Register HttpContextAccessor for ActivityLogFilter
-builder.Services.AddHttpContextAccessor();
-
-// Add Swagger/OpenAPI
+// ------------------------------------------------------
+// 🔗 Swagger / OpenAPI
+// ------------------------------------------------------
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Configure CORS
+// ------------------------------------------------------
+// 🛠 CORS (must allow credentials + both domains)
+// ------------------------------------------------------
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", builder =>
+    options.AddPolicy("AllowFrontend", policy =>
     {
-        builder.WithOrigins("https://backend.chaloholidayonline.com", "http://localhost:5173") // React dev server
-               .AllowAnyHeader()
-               .AllowAnyMethod()
-               .AllowCredentials();
+        policy
+            .WithOrigins(
+                "https://chaloholidayonline.com",
+                "https://www.chaloholidayonline.com",
+                "https://backend.chaloholidayonline.com",
+                "http://localhost:5173"
+            )
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials(); // ✅ Needed for cookies
     });
 });
-builder.Logging.ClearProviders();
-builder.Logging.AddConsole();    // Logs will show in console
-builder.Logging.AddDebug();      // Logs will show in debug output
 
-// Configure PostgreSQL with connection string
+// ------------------------------------------------------
+// 🗄 PostgreSQL
+// ------------------------------------------------------
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Configure app settings
+// ------------------------------------------------------
+// ⚙️ App Settings
+// ------------------------------------------------------
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 
-// Register services
+// ------------------------------------------------------
+// 🧱 Services & Hosted Jobs
+// ------------------------------------------------------
 builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IActivityLoggerService, ActivityLoggerService>(); // i added this line
-// builder.Services.AddScoped<ActivityLogFilter>(); // Filter depends on logger
+builder.Services.AddScoped<IActivityLoggerService, ActivityLoggerService>();
+builder.Services.AddHostedService<RememberTokenCleanupService>();
+builder.Services.AddHttpContextAccessor();
 
-// Configure JWT Authentication
+// ------------------------------------------------------
+// 🔐 JWT Authentication (reads token from cookie + header)
+// ------------------------------------------------------
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -71,45 +84,72 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)
+            ),
+            ClockSkew = TimeSpan.Zero
+        };
+
+        // ✅ Hybrid mode — allow cookie-based token too
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                // Use Authorization header first, else cookie
+                var authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
+                if (string.IsNullOrEmpty(authHeader) &&
+                    context.Request.Cookies.TryGetValue("accessToken", out var cookieToken))
+                {
+                    context.Token = cookieToken;
+                }
+                return Task.CompletedTask;
+            }
         };
     });
 
+// ------------------------------------------------------
+// 🚀 Build & Configure Middleware Pipeline
+// ------------------------------------------------------
 var app = builder.Build();
 
-// Development settings
+// ------------------------------------------------------
+// 💡 Development vs Production
+// ------------------------------------------------------
 if (app.Environment.IsDevelopment())
 {
-    app.UseDeveloperExceptionPage(); // Shows full stack trace
+    app.UseDeveloperExceptionPage();
+}
+else
+{
+    app.UseHsts();
 }
 
-// Enable Swagger
+// ------------------------------------------------------
+// 🧩 Swagger
+// ------------------------------------------------------
 app.UseSwagger();
 app.UseSwaggerUI();
 
-// Enable routing
+// ------------------------------------------------------
+// 🌐 Middleware Order
+// ------------------------------------------------------
 app.UseRouting();
-
-// Enable CORS middleware
-app.UseCors("AllowAll");
-
-// Enable authentication & authorization
-app.UseAuthentication();
+app.UseCors("AllowFrontend");     // ✅ Must be before auth for cookies
+app.UseAuthentication();          // ✅ Reads JWT + cookies
 app.UseAuthorization();
-
-// Map controllers
 app.MapControllers();
 
-// Simple health-check endpoint
+// ------------------------------------------------------
+// 🩺 Health Checks
+// ------------------------------------------------------
 app.MapGet("/", () => "Hotel API is running ✅");
 app.MapGet("/api/test", () => "API works!");
-var routeEndpoints = app.Services.GetRequiredService<Microsoft.AspNetCore.Routing.EndpointDataSource>()
-                        .Endpoints;
 
+// Optional endpoint listing for debugging
+var routeEndpoints = app.Services.GetRequiredService<Microsoft.AspNetCore.Routing.EndpointDataSource>().Endpoints;
 foreach (var endpoint in routeEndpoints)
 {
     Console.WriteLine(endpoint.DisplayName);
 }
-
 
 app.Run();

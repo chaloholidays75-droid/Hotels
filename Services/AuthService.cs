@@ -76,29 +76,78 @@ namespace HotelAPI.Services
 
 
 
-        public async Task<AuthResponse> LoginAsync(LoginRequest request)
+
+
+public async Task<AuthResponse> LoginAsync(LoginRequest request)
+{
+    var user = await _context.Users
+        .Where(u => u.Email == request.Email)
+        .Select(u => new User
         {
-            var user = await _context.Users
-            .Where(u => u.Email == request.Email)
-            .Select(u => new User
-            {
-                Id = u.Id,
-                Email = u.Email,
-                PasswordHash = u.PasswordHash,
-                FirstName = u.FirstName,
-                LastName = u.LastName,
-                Role = u.Role
-            })
-            .SingleOrDefaultAsync();
-            if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
-                throw new Exception("Invalid credentials");
+            Id = u.Id,
+            Email = u.Email,
+            PasswordHash = u.PasswordHash,
+            FirstName = u.FirstName,
+            LastName = u.LastName,
+            Role = u.Role
+        })
+        .SingleOrDefaultAsync();
 
-            var authResponse = await GenerateTokensAsync(user);
+    if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
+        throw new Exception("Invalid credentials");
 
-            await SendEmailAsync(user.Email, "Login Alert", $"You logged in successfully as {user.FirstName} {user.LastName}.");
+    var authResponse = await GenerateTokensAsync(user);
 
-            return authResponse;
-        }
+    // ✅ Issue a RememberToken only if requested
+    if (request.RememberMe)
+    {
+        var rememberToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+        _context.RememberTokens.Add(new RememberToken
+        {
+            UserId = user.Id,
+            Token = rememberToken,
+            Expiry = DateTime.UtcNow.AddDays(30)
+        });
+        await _context.SaveChangesAsync();
+        authResponse.RememberToken = rememberToken;
+    }
+
+    await SendEmailAsync(user.Email, "Login Alert", $"You logged in successfully as {user.FirstName} {user.LastName}.");
+    return authResponse;
+}
+
+// ✅ Validate remember token and rotate session tokens
+public async Task<AuthResponse> LoginWithRememberTokenAsync(string token)
+{
+    var record = await _context.RememberTokens
+        .Include(t => t.User)
+        .SingleOrDefaultAsync(t => t.Token == token && !t.IsRevoked);
+
+    if (record == null || record.Expiry <= DateTime.UtcNow)
+        throw new Exception("Token expired or invalid");
+
+    // Optionally rotate remember token to reduce replay risk (recommended)
+    var newToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+    record.Token = newToken;
+    record.Expiry = DateTime.UtcNow.AddDays(30);
+    await _context.SaveChangesAsync();
+
+    var authResponse = await GenerateTokensAsync(record.User);
+    authResponse.RememberToken = newToken;
+    return authResponse;
+}
+
+// ✅ Revoke remember token (on logout or manual revoke)
+public async Task RevokeRememberTokenAsync(string token)
+{
+    var record = await _context.RememberTokens.SingleOrDefaultAsync(t => t.Token == token && !t.IsRevoked);
+    if (record != null)
+    {
+        record.IsRevoked = true;
+        await _context.SaveChangesAsync();
+    }
+}
+
         public async Task LogoutAsync(LogoutRequest request)
         {
             if (string.IsNullOrEmpty(request.RefreshToken))
