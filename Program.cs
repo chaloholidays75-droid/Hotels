@@ -39,8 +39,6 @@ builder.Services.AddCors(options =>
     {
         policy
             .WithOrigins(
-                "https://chaloholidayonline.com",
-                "https://www.chaloholidayonline.com",
                 "https://backend.chaloholidayonline.com",
                 "http://localhost:5173"
             )
