@@ -35,6 +35,8 @@ namespace HotelAPI.Models
 
         public string? SpecialRequest { get; set; }
         public string? Status { get; set; } = "Confirmed";
+        public DateTime? Deadline { get; set; }  // ✅ Staff must fill this
+        public bool ReminderSent { get; set; } = false;
 
         // ✅ Link to Commercial
         public int? CommercialId { get; set; }

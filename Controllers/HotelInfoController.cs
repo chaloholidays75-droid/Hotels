@@ -10,8 +10,9 @@ using HotelAPI.Services;
 
 namespace HotelAPI.Controllers
 {
-    
+
     [Route("api/hotels")]
+    [Authorize]
     [ApiController]
     public class HotelController : ControllerBase
     {

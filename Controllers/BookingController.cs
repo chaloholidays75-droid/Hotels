@@ -150,13 +150,14 @@ namespace HotelAPI.Controllers
                 // 1) Create Booking (no temp ticket number)
                 var booking = new Booking
                 {
-                    AgencyId       = dto.AgencyId,
-                    SupplierId     = dto.SupplierId,
-                    HotelId        = dto.HotelId,
-                    CheckIn        = checkInUtc,
-                    CheckOut       = checkOutUtc,
-                    Status         = "Confirmed",
-                    NumberOfRooms  = dto.BookingRooms.Count,
+                    AgencyId = dto.AgencyId,
+                    SupplierId = dto.SupplierId,
+                    HotelId = dto.HotelId,
+                    CheckIn = checkInUtc,
+                    CheckOut = checkOutUtc,
+                    Deadline = dto.Deadline, 
+                    Status = "Confirmed",
+                    NumberOfRooms = dto.BookingRooms.Count,
                     SpecialRequest = dto.SpecialRequest
                 };
 
@@ -269,6 +270,7 @@ public async Task<ActionResult<object>> Update(int id, [FromBody] BookingUpdateD
         existing.SupplierId = dto.SupplierId ?? existing.SupplierId;
         existing.CheckIn = dto.CheckIn.HasValue ? EnsureUtc(dto.CheckIn.Value) : existing.CheckIn;
         existing.CheckOut = dto.CheckOut.HasValue ? EnsureUtc(dto.CheckOut.Value) : existing.CheckOut;
+        existing.Deadline = dto.Deadline ?? existing.Deadline;
         existing.Status = dto.Status ?? existing.Status;
         existing.SpecialRequest = dto.SpecialRequest ?? existing.SpecialRequest;
 

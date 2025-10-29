@@ -11,6 +11,8 @@ namespace HotelAPI.Models.DTO
         public int? NumberOfRooms { get; set; }
         public string? Status { get; set; }
         public string? SpecialRequest { get; set; }
+        public DateTime? Deadline { get; set; }
+
         public List<BookingRoomUpdateDto>? BookingRooms { get; set; }
     }
 

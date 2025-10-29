@@ -9,6 +9,8 @@ namespace HotelAPI.Models.DTO
         public DateTime CheckOut { get; set; }
         public int? NumberOfRooms { get; set; }
         public string? SpecialRequest { get; set; }
+        public DateTime? Deadline { get; set; }
+
         public List<BookingRoomDto> BookingRooms { get; set; } = new List<BookingRoomDto>();
 
     }
