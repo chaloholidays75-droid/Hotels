@@ -155,8 +155,8 @@ namespace HotelAPI.Controllers
                     HotelId = dto.HotelId,
                     CheckIn = checkInUtc,
                     CheckOut = checkOutUtc,
-                    Deadline = dto.Deadline, 
-                    Status = "Confirmed",
+                    Status  = string.IsNullOrWhiteSpace(dto.Status) ? "Confirmed" : dto.Status,
+                    Deadline      = dto.Deadline.HasValue ? EnsureUtc(dto.Deadline.Value) : null,
                     NumberOfRooms = dto.BookingRooms.Count,
                     SpecialRequest = dto.SpecialRequest
                 };
@@ -273,7 +273,20 @@ public async Task<ActionResult<object>> Update(int id, [FromBody] BookingUpdateD
         existing.Deadline = dto.Deadline ?? existing.Deadline;
         existing.Status = dto.Status ?? existing.Status;
         existing.SpecialRequest = dto.SpecialRequest ?? existing.SpecialRequest;
+                if (!string.IsNullOrEmpty(dto.Status))
+                {
+                    existing.Status = dto.Status;
 
+                    if (dto.Status == "Reconfirmed(Guaranteed)")
+                    {
+                        existing.Deadline = null; // ✅ clear on reconfirm
+                    }
+                    // No auto-cancel; no 24h logic
+                }
+                if (dto.Deadline.HasValue)
+                {
+                    existing.Deadline = EnsureUtc(dto.Deadline.Value);
+                }
         // ✅ Replace old rooms safely
         _context.BookingRooms.RemoveRange(existing.BookingRooms);
 
@@ -506,6 +519,28 @@ public async Task<ActionResult<object>> Update(int id, [FromBody] BookingUpdateD
                 });
             }
         }
+        // GET: api/booking/pending-reconfirmations
+        [HttpGet("pending-reconfirmations")]
+        public async Task<IActionResult> GetPendingReconfirmations()
+        {
+            var pending = await _context.Bookings
+                .Include(b => b.Hotel)
+                .Include(b => b.Agency)
+                .Where(b => b.Status == "Confirmed" && b.Deadline.HasValue)
+                .OrderBy(b => b.Deadline)
+                .Select(b => new
+                {
+                    b.Id,
+                    b.TicketNumber,
+                    HotelName = b.Hotel != null ? b.Hotel.HotelName : null,
+                    AgencyName = b.Agency != null ? b.Agency.AgencyName : null,
+                    b.Deadline
+                })
+                .ToListAsync();
+
+            return Ok(pending);
+            }
+
 
     }
 }
