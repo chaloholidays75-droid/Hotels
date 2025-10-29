@@ -315,6 +315,46 @@ public async Task<IActionResult> GetFinancialTrends()
 
             return Ok(data);
         }
+        [HttpGet("upcoming-deadlines")]
+        public async Task<IActionResult> GetUpcomingDeadlines()
+        {
+            try
+            {
+                var now = DateTime.UtcNow;
+                var threeDaysLater = now.AddDays(3);
+
+                var deadlines = await _context.Bookings
+                    .Where(b => b.Deadline != null && b.Deadline >= now && b.Deadline <= threeDaysLater)
+                    .Select(b => new
+                    {
+                        b.Id,
+                        b.TicketNumber,
+                        HotelName = b.Hotel != null ? b.Hotel.HotelName : "Unknown Hotel",
+                        AgencyName = b.Agency != null ? b.Agency.AgencyName : "Unknown Agency",
+                        b.Status,
+                        b.Deadline
+                    })
+                    .OrderBy(b => b.Deadline)
+                    .ToListAsync();
+
+                return Ok(new
+                {
+                    Success = true,
+                    Count = deadlines.Count,
+                    Data = deadlines
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    Success = false,
+                    Message = "Error fetching upcoming deadlines",
+                    Error = ex.Message
+                });
+            }
+        }
+
 
         // ===============================================================
         // Helper
@@ -329,5 +369,7 @@ public async Task<IActionResult> GetFinancialTrends()
             if (diff.TotalDays < 365) return $"{(int)(diff.TotalDays / 30)}mo ago";
             return $"{(int)(diff.TotalDays / 365)}y ago";
         }
+
+        
     }
 }
