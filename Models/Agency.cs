@@ -31,6 +31,8 @@ namespace HotelAPI.Models
         public bool AcceptTerms { get; set; }
         public bool IsActive { get; set; } = true;
         public string? Region { get; set; }
+        public string? Area { get; set; }
+
         public string? SpecialRemarks { get; set; }
         
         public ICollection<AgencyStaff> Staff { get; set; } = new List<AgencyStaff>();

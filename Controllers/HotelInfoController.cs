@@ -231,7 +231,7 @@ namespace HotelAPI.Controllers
             hotel.HotelEmail = dto.HotelEmail;
             hotel.HotelContactNumber = dto.HotelContactNumber;
             hotel.Address = dto.Address;
-            hotel.Region = dto.Region;
+            hotel.Area = dto.Area;
             hotel.HotelChain = dto.HotelChain;
             hotel.SpecialRemarks = dto.SpecialRemarks;
             hotel.City = city;

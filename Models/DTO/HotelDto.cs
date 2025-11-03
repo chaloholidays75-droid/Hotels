@@ -7,7 +7,7 @@ namespace HotelAPI.Models.DTO
         public int Id { get; set; }
         public int CountryId { get; set; } 
         public int CityId { get; set; } 
-        public string? Region { get; set; }
+        public string? Area { get; set; }
         public string HotelName { get; set; } = string.Empty;
         public string HotelEmail { get; set; } = string.Empty;
         public string HotelContactNumber { get; set; } = string.Empty;

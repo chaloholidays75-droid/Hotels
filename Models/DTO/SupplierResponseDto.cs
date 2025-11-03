@@ -8,7 +8,7 @@ namespace HotelAPI.Models.DTO
         public int? CityId { get; set; }
         public string? PostCode { get; set; }
         public string? Address { get; set; }
-        public string? Region { get; set; }
+        public string?Area { get; set; }
         public int? SupplierCategoryId { get; set; }
         public int? SupplierSubCategoryId { get; set; }
         public string? PhoneNo { get; set; }

@@ -13,7 +13,7 @@ namespace HotelAPI.Models
 
         public int CountryId { get; set; }
         public Country Country { get; set; } = null!;
-        public string? Region { get; set; }
+        public string? Area { get; set; }
 
         // Hotel Details
         public string HotelName { get; set; } = string.Empty;
