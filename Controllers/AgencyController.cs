@@ -72,7 +72,29 @@ namespace AgencyManagementSystem.Controllers
                 return StatusCode(500, new { message = "Error retrieving agencies", error = ex.Message });
             }
         }
+            
+        [Authorize(Roles = "Admin,Employee")]
+        [HttpGet("active")]
+        public async Task<ActionResult<IEnumerable<Agency>>> GetActiveAgencies()
+        {
+            try
+            {
+                var agencies = await _context.Agencies
+                    .AsNoTracking()
+                    .Where(a => a.IsActive)
+                    .Include(a => a.Country)
+                    .Include(a => a.City)
+                    .Include(a => a.Staff)
+                    .OrderByDescending(a => a.CreatedAt)
+                    .ToListAsync();
 
+                return Ok(agencies);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error retrieving active agencies", error = ex.Message });
+            }
+        }
         // GET: api/agency/5
         [Authorize(Roles = "Admin,Employee")]
         [HttpGet("{id}")]
