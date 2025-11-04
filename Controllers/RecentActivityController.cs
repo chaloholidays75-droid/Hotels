@@ -69,7 +69,7 @@ namespace HotelAPI.Controllers
 
                 var activity = new RecentActivity
                 {
-                    UserId = userId,
+                   
                     UserName = userName,
                     ActionType = request.ActionType,
                     TableName = request.TableName,

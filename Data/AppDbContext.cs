@@ -134,7 +134,7 @@ private void LogRecentActivities()
 
         var activity = new RecentActivity
         {
-            UserId = userId,
+          
             UserName = userName,
             ActionType = action,
             TableName = entityName,

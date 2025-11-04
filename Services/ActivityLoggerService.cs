@@ -73,7 +73,7 @@ namespace HotelAPI.Services
 
                 var activity = new RecentActivity
                 {
-                    UserId = userId,
+                   
                     UserName = userName,
                     ActionType = action,
                     TableName = tableName,
