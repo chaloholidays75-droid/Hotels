@@ -1,15 +1,18 @@
 using HotelAPI.Data;
 using HotelAPI.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Threading.Tasks;
+using System;
 using System.Linq;
 using System.Security.Claims;
+using System.Threading.Tasks;
 
 namespace HotelAPI.Controllers
 {
     [ApiController]
-    [Route("api/recent")]
+    [Route("api/recent-activities")]
+    [Authorize] // Optional: require authentication if using JWT
     public class RecentActivitiesController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -19,9 +22,9 @@ namespace HotelAPI.Controllers
             _context = context;
         }
 
-        // GET: api/recent?page=1&pageSize=20
+        // ✅ 1️⃣ Get all recent activities (with pagination)
         [HttpGet]
-        public async Task<IActionResult> GetRecentActivities(int page = 1, int pageSize = 20)
+        public async Task<IActionResult> GetAll(int page = 1, int pageSize = 20)
         {
             var activities = await _context.RecentActivities
                 .OrderByDescending(a => a.Timestamp)
@@ -32,82 +35,82 @@ namespace HotelAPI.Controllers
             return Ok(activities);
         }
 
-        // POST: api/recent/log
-        // [HttpPost("log")]
-        // public async Task<IActionResult> LogActivity([FromBody] RecentActivity activity)
-        // {
-        //     // Get UserId and UserName from JWT
-        //     int userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "0");
-        //     string userName = User.FindFirstValue(ClaimTypes.Name) ?? "System";
-
-        //     activity.UserId = userId;
-        //     activity.UserName = userName;
-        //     activity.Timestamp = System.DateTime.UtcNow;
-
-        //     _context.RecentActivities.Add(activity);
-        //     await _context.SaveChangesAsync();
-
-        //     return Ok(new { message = "Activity logged successfully!" });
-        // }
-
-        // Helper method for automatic logging
-        [HttpPost("log")]
-        public async Task LogActionAsync(string entity, int entityId, string action, string description)
+        // ✅ 2️⃣ Get latest 30 activities (for dashboard)
+        [HttpGet("latest")]
+        public async Task<IActionResult> GetLatest()
         {
-            int userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "0");
-            string userName = User.FindFirstValue(ClaimTypes.Name) ?? "System";
+            var result = await _context.RecentActivities
+                .OrderByDescending(r => r.Timestamp)
+                .Take(30)
+                .Select(r => new
+                {
+                    r.Id,
+                    r.UserName,
+                    r.ActionType,
+                    r.TableName,
+                    r.RecordId,
+                    r.Description,
+                    r.Timestamp,
+                    TimeAgo = GetTimeAgo(r.Timestamp)
+                })
+                .ToListAsync();
 
-            var activity = new RecentActivity
-            {
-                UserId = userId,
-                UserName = userName,
-                Action = action,
-                Entity = entity,
-                EntityId = entityId,
-                Description = description,
-                Timestamp = System.DateTime.UtcNow
-            };
-
-            _context.RecentActivities.Add(activity);
-            await _context.SaveChangesAsync();
+            return Ok(result);
         }
-               // ========== 8. RECENT ACTIVITIES ==========
 
-        [HttpGet("recent-activities")]
-        public async Task<IActionResult> GetRecentActivities()
+        // ✅ 3️⃣ Log a new activity manually
+        [HttpPost("log")]
+        public async Task<IActionResult> LogActivity([FromBody] RecentActivity request)
         {
             try
             {
-                // 1️⃣ Fetch from database first
-                var activities = await _context.RecentActivities
-                    .OrderByDescending(r => r.Timestamp)
-                    .Take(20)
-                    .ToListAsync(); // materialize query
+                int userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "0");
+                string userName = User.FindFirstValue(ClaimTypes.Name) ?? "System";
 
-                // 2️⃣ Project in memory, including TimeAgo
-                var result = activities.Select(r => new
+                var activity = new RecentActivity
                 {
-                    r.Id,
-                    r.UserId,
-                    r.UserName,
-                    r.Action,
-                    r.Entity,
-                    r.EntityId,
-                    r.Description,
-                    r.Timestamp,
-                    TimeAgo = GetTimeAgo(r.Timestamp) // safe now
-                }).ToList();
+                    UserId = userId,
+                    UserName = userName,
+                    ActionType = request.ActionType,
+                    TableName = request.TableName,
+                    RecordId = request.RecordId,
+                    Description = request.Description,
+                    Timestamp = DateTime.UtcNow,
+                    ChangedData = request.ChangedData
+                };
 
-                return Ok(result);
+                _context.RecentActivities.Add(activity);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Activity logged successfully!", activity });
             }
             catch (Exception ex)
             {
-                // _logger.LogError(ex, "Error fetching recent activities");
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, new { message = "Error logging activity", error = ex.Message });
             }
         }
 
-        // ===== Helper: Human-readable time ago =====
+        // ✅ 4️⃣ Optional: Get activities by table or user
+        [HttpGet("filter")]
+        public async Task<IActionResult> Filter(string? tableName = null, string? user = null)
+        {
+            var query = _context.RecentActivities.AsQueryable();
+
+            if (!string.IsNullOrEmpty(tableName))
+                query = query.Where(a => a.TableName == tableName);
+
+            if (!string.IsNullOrEmpty(user))
+                query = query.Where(a => a.UserName == user);
+
+            var result = await query
+                .OrderByDescending(a => a.Timestamp)
+                .Take(50)
+                .ToListAsync();
+
+            return Ok(result);
+        }
+
+        // ✅ 5️⃣ Helper: Convert to human-readable "time ago"
         private static string GetTimeAgo(DateTime dateTime)
         {
             var timeSpan = DateTime.UtcNow - dateTime;
@@ -125,7 +128,5 @@ namespace HotelAPI.Controllers
 
             return $"{(int)(timeSpan.TotalDays / 365)} years ago";
         }
-
-    
     }
 }
