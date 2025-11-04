@@ -88,14 +88,17 @@ namespace HotelAPI.Data
         private void LogRecentActivities()
         {
             var httpContext = _httpContextAccessor?.HttpContext;
-            var userIdStr = httpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var userName = httpContext?.User?.FindFirst(ClaimTypes.Name)?.Value ?? "System";
+            var userIdStr = httpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var userName = httpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? "System";
             int.TryParse(userIdStr, out int userId);
 
+            // ✅ Skip logging for the RecentActivities table itself (prevents infinite recursion)
             var entries = ChangeTracker.Entries()
-                .Where(e => e.State == EntityState.Added ||
-                            e.State == EntityState.Modified ||
-                            e.State == EntityState.Deleted)
+                .Where(e =>
+                    (e.State == EntityState.Added ||
+                    e.State == EntityState.Modified ||
+                    e.State == EntityState.Deleted)
+                    && e.Entity.GetType().Name != nameof(RecentActivity)) // <-- important line
                 .ToList();
 
             foreach (var entry in entries)
@@ -114,7 +117,7 @@ namespace HotelAPI.Data
                 if (idProp?.CurrentValue != null)
                     int.TryParse(idProp.CurrentValue.ToString(), out recordId);
 
-                // Track property-level changes for UPDATE
+                // 🧩 Track property-level changes for UPDATE
                 string changedData = null;
                 if (entry.State == EntityState.Modified)
                 {
@@ -127,6 +130,10 @@ namespace HotelAPI.Data
                 var description = $"{action} operation on {entityName} (ID {recordId}) by {userName}.";
                 if (!string.IsNullOrEmpty(changedData))
                     description += $" Changes: {changedData}";
+
+                // 🛡️ Skip if table or action missing (safety)
+                if (string.IsNullOrEmpty(entityName) || string.IsNullOrEmpty(action))
+                    continue;
 
                 var activity = new RecentActivity
                 {
