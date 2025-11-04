@@ -26,25 +26,25 @@ namespace HotelAPI.Controllers
             _context = context;
             _mapper = mapper;
         }
-        private async Task LogRecentActivityAsync(string entity, int entityId, string action, string description)
-        {
-            int userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "0"); 
-            string userName = User.FindFirstValue(ClaimTypes.Name) ?? "System";
+        // private async Task LogRecentActivityAsync(string entity, int entityId, string action, string description)
+        // {
+        //     int userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "0"); 
+        //     string userName = User.FindFirstValue(ClaimTypes.Name) ?? "System";
 
-            var activity = new RecentActivity
-            {
-                UserId = userId,
-                UserName = userName,
-                Entity = entity,
-                EntityId = entityId,
-                Action = action,
-                Description = description,
-                Timestamp = DateTime.UtcNow
-            };
+        //     var activity = new RecentActivity
+        //     {
+        //         UserId = userId,
+        //         UserName = userName,
+        //         Entity = entity,
+        //         EntityId = entityId,
+        //         Action = action,
+        //         Description = description,
+        //         Timestamp = DateTime.UtcNow
+        //     };
 
-            _context.RecentActivities.Add(activity);
-            await _context.SaveChangesAsync();
-        }
+        //     _context.RecentActivities.Add(activity);
+        //     await _context.SaveChangesAsync();
+        // }
 
         // Add this debug endpoint to your HotelController
         [HttpPatch("debug-test")]
@@ -198,7 +198,7 @@ namespace HotelAPI.Controllers
 
             _context.HotelInfo.Add(hotel);
             await _context.SaveChangesAsync();
-            await LogRecentActivityAsync("HotelInfo", hotel.Id, "CREATE", $"{hotel.HotelName} created");
+            // await LogRecentActivityAsync("HotelInfo", hotel.Id, "CREATE", $"{hotel.HotelName} created");
 
 
             return CreatedAtAction(nameof(GetHotel), new { id = hotel.Id }, _mapper.Map<HotelDto>(hotel));
@@ -246,7 +246,7 @@ namespace HotelAPI.Controllers
 
             hotel.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
-            await LogRecentActivityAsync("HotelInfo", hotel.Id, "UPDATE", $"{hotel.HotelName} updated");
+            // await LogRecentActivityAsync("HotelInfo", hotel.Id, "UPDATE", $"{hotel.HotelName} updated");
 
             return Ok(new { message = "Hotel updated successfully" });
 
@@ -288,7 +288,7 @@ namespace HotelAPI.Controllers
 
             _context.HotelInfo.Update(hotel);
             await _context.SaveChangesAsync();
-            await LogRecentActivityAsync("HotelInfo", hotel.Id, "DELETE", $"{hotel.HotelName} marked as inactive");
+            // await LogRecentActivityAsync("HotelInfo", hotel.Id, "DELETE", $"{hotel.HotelName} marked as inactive");
 
             return Ok(new { message = "Hotel deleted successfully" });
 
@@ -312,7 +312,7 @@ namespace HotelAPI.Controllers
             _context.Entry(hotel).State = EntityState.Modified;
 
             await _context.SaveChangesAsync();
-            await LogRecentActivityAsync("HotelInfo", hotel.Id, "UPDATE", $"{hotel.HotelName} status changed to {(hotel.IsActive ? "Active" : "Inactive")}");
+            // await LogRecentActivityAsync("HotelInfo", hotel.Id, "UPDATE", $"{hotel.HotelName} status changed to {(hotel.IsActive ? "Active" : "Inactive")}");
 
             return Ok(new { message = $"Hotel {(statusDto.IsActive ? "activated" : "deactivated")} successfully" });
         }

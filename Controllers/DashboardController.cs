@@ -254,25 +254,6 @@ public async Task<IActionResult> GetFinancialTrends()
         // ===============================================================
         // 9️⃣ ACTIVITY FEED (TIMELINE)
         // ===============================================================
-        [HttpGet("recent-activities")]
-        public async Task<IActionResult> GetRecentActivities()
-        {
-            var recent = await _context.RecentActivities
-                .OrderByDescending(a => a.Timestamp)
-                .Take(15)
-                .Select(a => new
-                {
-                    a.UserName,
-                    a.Action,
-                    a.Entity,
-                    a.Description,
-                    a.Timestamp,
-                    TimeAgo = GetTimeAgo(a.Timestamp)
-                })
-                .ToListAsync();
-
-            return Ok(recent);
-        }
 
         // ===============================================================
         // 🔟 WEEKLY BOOKINGS (7-DAY TREND)

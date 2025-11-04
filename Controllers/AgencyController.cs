@@ -31,25 +31,25 @@ namespace AgencyManagementSystem.Controllers
             return string.IsNullOrWhiteSpace(s) ? (int?)null : int.Parse(s);
         }
 
-        private async Task LogRecentActivityAsync(string entity, int entityId, string action, string description)
-        {
-            int userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "0"); 
-            string userName = User.FindFirstValue(ClaimTypes.Name) ?? "System";
+        // private async Task LogRecentActivityAsync(string entity, int entityId, string action, string description)
+        // {
+        //     int userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "0"); 
+        //     string userName = User.FindFirstValue(ClaimTypes.Name) ?? "System";
 
-            var activity = new RecentActivity
-            {
-                UserId = userId,
-                UserName = userName,
-                Entity = entity,
-                EntityId = entityId,
-                Action = action,
-                Description = description,
-                Timestamp = DateTime.UtcNow
-            };
+        //     var activity = new RecentActivity
+        //     {
+        //         UserId = userId,
+        //         UserName = userName,
+        //         Entity = entity,
+        //         EntityId = entityId,
+        //         Action = action,
+        //         Description = description,
+        //         Timestamp = DateTime.UtcNow
+        //     };
 
-            _context.RecentActivities.Add(activity);
-            await _context.SaveChangesAsync();
-        }
+        //     _context.RecentActivities.Add(activity);
+        //     await _context.SaveChangesAsync();
+        // }
 
         // GET: api/agency
         [Authorize(Roles = "Admin,Employee")]
@@ -151,7 +151,7 @@ namespace AgencyManagementSystem.Controllers
 
             _context.Agencies.Add(agency);
             await _context.SaveChangesAsync();
-            await LogRecentActivityAsync("Agency", agency.Id, "CREATE", $"{agency.AgencyName} created");
+            // await LogRecentActivityAsync("Agency", agency.Id, "CREATE", $"{agency.AgencyName} created");
 
              if (dto.Staff is { Count: > 0 })
     {
@@ -197,7 +197,7 @@ namespace AgencyManagementSystem.Controllers
         {
             _context.AgencyStaff.AddRange(toAdd);
             await _context.SaveChangesAsync();
-            await LogRecentActivityAsync("AgencyStaff", agency.Id, "BULK CREATE", $"{toAdd.Count} staff added to {agency.AgencyName}");
+            // await LogRecentActivityAsync("AgencyStaff", agency.Id, "BULK CREATE", $"{toAdd.Count} staff added to {agency.AgencyName}");
         }
     }
             // _ = SendWelcomeEmailAsync(agency.EmailId, agency.AgencyName);
@@ -280,7 +280,7 @@ namespace AgencyManagementSystem.Controllers
                 existingAgency.Password = HashPassword(agencyUpdate.Password);
 
             await _context.SaveChangesAsync();
-            await LogRecentActivityAsync("Agency", existingAgency.Id, "UPDATE", $"{existingAgency.AgencyName} updated");
+            // await LogRecentActivityAsync("Agency", existingAgency.Id, "UPDATE", $"{existingAgency.AgencyName} updated");
             return Ok(new
             {
                 message = "Agency updated successfully",
@@ -302,7 +302,7 @@ namespace AgencyManagementSystem.Controllers
 
             _context.Entry(agency).State = EntityState.Modified;
             await _context.SaveChangesAsync();
-            await LogRecentActivityAsync("Agency", agency.Id, "DELETE", $"{agency.AgencyName} deactivated");
+            // await LogRecentActivityAsync("Agency", agency.Id, "DELETE", $"{agency.AgencyName} deactivated");
 
             return Ok(new { message = "Agency deactivated successfully" });
         }
@@ -323,7 +323,7 @@ namespace AgencyManagementSystem.Controllers
 
                 _context.Entry(agency).State = EntityState.Modified;
                 await _context.SaveChangesAsync();
-                await LogRecentActivityAsync("Agency", agency.Id, "STATUS UPDATE", $"{agency.AgencyName} status changed to {(agency.IsActive ? "Active" : "Inactive")}");
+                // await LogRecentActivityAsync("Agency", agency.Id, "STATUS UPDATE", $"{agency.AgencyName} status changed to {(agency.IsActive ? "Active" : "Inactive")}");
                 
                 return Ok(new { message = $"Agency {(dto.IsActive ? "activated" : "deactivated")} successfully" });
             }
@@ -448,7 +448,7 @@ namespace AgencyManagementSystem.Controllers
             _context.AgencyStaff.AddRange(toAdd);
             await _context.SaveChangesAsync();
 
-            await LogRecentActivityAsync("AgencyStaff", id, "BULK CREATE", $"{toAdd.Count} staff added to {agency.AgencyName}");
+            // await LogRecentActivityAsync("AgencyStaff", id, "BULK CREATE", $"{toAdd.Count} staff added to {agency.AgencyName}");
 
             return Ok(new { added = toAdd.Count });
         }

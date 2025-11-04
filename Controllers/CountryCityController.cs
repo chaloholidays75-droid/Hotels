@@ -18,26 +18,26 @@ namespace HotelAPI.Controllers
             _context = context;
         }
 
-        private async Task LogRecentActivityAsync(string entity, int entityId, string action, string description)
-        {
-            int userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "0");
-            string userName = User.FindFirstValue(ClaimTypes.Name) ?? "System";
+        // private async Task LogRecentActivityAsync(string entity, int entityId, string action, string description)
+        // {
+        //     int userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "0");
+        //     string userName = User.FindFirstValue(ClaimTypes.Name) ?? "System";
 
-            var activity = new RecentActivity
-            {
-                UserId = userId,
-                UserName = userName,
-                Entity = entity,
-                EntityId = entityId,
-                Action = action,
-                Description = description,
-                Timestamp = DateTime.UtcNow
-            };
+        //     var activity = new RecentActivity
+        //     {
+        //         UserId = userId,
+        //         UserName = userName,
+        //         Entity = entity,
+        //         EntityId = entityId,
+        //         Action = action,
+        //         Description = description,
+        //         Timestamp = DateTime.UtcNow
+        //     };
 
-            _context.RecentActivities.Add(activity);
-            await _context.SaveChangesAsync();
+        //     _context.RecentActivities.Add(activity);
+        //     await _context.SaveChangesAsync();
             
-        }
+        // }
 
         // GET: api/countries
         [HttpGet("countries")]
@@ -114,7 +114,7 @@ public async Task<ActionResult<CountryDto>> GetCountry(int id)
 
             _context.Countries.Add(country);
             await _context.SaveChangesAsync();
-            await LogRecentActivityAsync("Country", country.Id, "CREATE", $"{country.Name} created");
+            // await LogRecentActivityAsync("Country", country.Id, "CREATE", $"{country.Name} created");
             dto.Id = country.Id;
             return CreatedAtAction(nameof(GetCountry), new { id = country.Id }, dto);
         }
@@ -137,7 +137,7 @@ public async Task<ActionResult<CountryDto>> GetCountry(int id)
             country.Code = dto.Code;
 
             await _context.SaveChangesAsync();
-            await LogRecentActivityAsync("Country", country.Id, "UPDATE", $"{country.Name} updated");
+            // await LogRecentActivityAsync("Country", country.Id, "UPDATE", $"{country.Name} updated");
 
             return Ok(new { message = "Country updated successfully" });
         }
@@ -158,7 +158,7 @@ public async Task<ActionResult<CountryDto>> GetCountry(int id)
 
             _context.Countries.Remove(country);
             await _context.SaveChangesAsync();
-            await LogRecentActivityAsync("Country", country.Id, "DELETE", $"{country.Name} deleted");
+            // await LogRecentActivityAsync("Country", country.Id, "DELETE", $"{country.Name} deleted");
 
             return Ok(new { message = "Country deleted successfully" });
         }
@@ -203,7 +203,7 @@ public async Task<ActionResult<CountryDto>> GetCountry(int id)
 
             _context.Cities.Add(city);
             await _context.SaveChangesAsync();
-            await LogRecentActivityAsync("City", city.Id, "CREATE", $"{city.Name} created in country ID {city.CountryId}");
+            // await LogRecentActivityAsync("City", city.Id, "CREATE", $"{city.Name} created in country ID {city.CountryId}");
 
             dto.Id = city.Id;
             return CreatedAtAction(nameof(GetCitiesByCountry), new { countryId = dto.CountryId }, dto);
@@ -227,7 +227,7 @@ public async Task<ActionResult<CountryDto>> GetCountry(int id)
             city.CountryId = dto.CountryId;
 
             await _context.SaveChangesAsync();
-            await LogRecentActivityAsync("City", city.Id, "UPDATE", $"{city.Name} updated in country ID {city.CountryId}");
+            // await LogRecentActivityAsync("City", city.Id, "UPDATE", $"{city.Name} updated in country ID {city.CountryId}");
             return Ok(new { message = "City updated successfully" });
         }
 
@@ -246,7 +246,7 @@ public async Task<ActionResult<CountryDto>> GetCountry(int id)
 
             _context.Cities.Remove(city);
             await _context.SaveChangesAsync();
-            await LogRecentActivityAsync("City", city.Id, "DELETE", $"{city.Name} deleted from country ID {city.CountryId}");
+            // await LogRecentActivityAsync("City", city.Id, "DELETE", $"{city.Name} deleted from country ID {city.CountryId}");
             return Ok(new { message = "City deleted successfully" });
         }
         // GET: api/stats
