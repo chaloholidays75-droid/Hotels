@@ -350,6 +350,49 @@ public async Task<IActionResult> GetFinancialTrends()
             if (diff.TotalDays < 365) return $"{(int)(diff.TotalDays / 30)}mo ago";
             return $"{(int)(diff.TotalDays / 365)}y ago";
         }
+    // ===============================================================
+// 9️⃣ RECENT ACTIVITIES (COMPACT FEED)
+// ===============================================================
+[HttpGet("recent-activities")]
+public async Task<IActionResult> GetRecentActivities()
+{
+    try
+    {
+        var recent = await _context.RecentActivities
+            .OrderByDescending(r => r.Timestamp)
+            .Take(8) // Compact: limit to 8 latest actions
+            .Select(r => new
+            {
+                r.Id,
+                r.UserName,
+                r.ActionType,
+                r.TableName,
+                r.RecordId,
+                // Trim long descriptions for compact UI
+                Description = r.Description.Length > 70 
+                    ? r.Description.Substring(0, 67) + "..." 
+                    : r.Description,
+                TimeAgo = GetTimeAgo(r.Timestamp)
+            })
+            .ToListAsync();
+
+        return Ok(new
+        {
+            Success = true,
+            Count = recent.Count,
+            Data = recent
+        });
+    }
+    catch (Exception ex)
+    {
+        return StatusCode(500, new
+        {
+            Success = false,
+            Message = "Error loading recent activities",
+            Error = ex.Message
+        });
+    }
+}
 
         
     }
