@@ -85,71 +85,69 @@ namespace HotelAPI.Data
         }
 
         // ======= Recent Activity Logger =======
-        private void LogRecentActivities()
+private void LogRecentActivities()
+{
+    var httpContext = _httpContextAccessor?.HttpContext;
+    var userIdStr = httpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    var userName = httpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? "System";
+    int.TryParse(userIdStr, out int userId);
+
+    // ✅ Skip internal or system tables
+    var skipList = new[] { nameof(RecentActivity), nameof(RefreshToken), nameof(RememberToken) };
+
+    var entries = ChangeTracker.Entries()
+        .Where(e =>
+            (e.State == EntityState.Added ||
+             e.State == EntityState.Modified ||
+             e.State == EntityState.Deleted)
+            && !skipList.Contains(e.Entity.GetType().Name)) // skip system tables
+        .ToList();
+
+    foreach (var entry in entries)
+    {
+        var entityName = entry.Entity.GetType().Name;
+        var action = entry.State switch
         {
-            var httpContext = _httpContextAccessor?.HttpContext;
-            var userIdStr = httpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            var userName = httpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? "System";
-            int.TryParse(userIdStr, out int userId);
+            EntityState.Added => "INSERT",
+            EntityState.Modified => "UPDATE",
+            EntityState.Deleted => "DELETE",
+            _ => "UNKNOWN"
+        };
 
-            // ✅ Skip logging for the RecentActivities table itself (prevents infinite recursion)
-            var entries = ChangeTracker.Entries()
-                .Where(e =>
-                    (e.State == EntityState.Added ||
-                    e.State == EntityState.Modified ||
-                    e.State == EntityState.Deleted)
-                    && e.Entity.GetType().Name != nameof(RecentActivity)) // <-- important line
-                .ToList();
+        int recordId = 0;
+        var idProp = entry.Properties.FirstOrDefault(p => p.Metadata.Name.Equals("Id", StringComparison.OrdinalIgnoreCase));
+        if (idProp?.CurrentValue != null)
+            int.TryParse(idProp.CurrentValue.ToString(), out recordId);
 
-            foreach (var entry in entries)
-            {
-                var entityName = entry.Entity.GetType().Name;
-                var action = entry.State switch
-                {
-                    EntityState.Added => "INSERT",
-                    EntityState.Modified => "UPDATE",
-                    EntityState.Deleted => "DELETE",
-                    _ => "UNKNOWN"
-                };
-
-                int recordId = 0;
-                var idProp = entry.Properties.FirstOrDefault(p => p.Metadata.Name.Equals("Id", StringComparison.OrdinalIgnoreCase));
-                if (idProp?.CurrentValue != null)
-                    int.TryParse(idProp.CurrentValue.ToString(), out recordId);
-
-                // 🧩 Track property-level changes for UPDATE
-                string changedData = null;
-                if (entry.State == EntityState.Modified)
-                {
-                    var modifiedProps = entry.Properties
-                        .Where(p => p.IsModified)
-                        .Select(p => $"{p.Metadata.Name}: '{p.OriginalValue}' → '{p.CurrentValue}'");
-                    changedData = string.Join("; ", modifiedProps);
-                }
-
-                var description = $"{action} operation on {entityName} (ID {recordId}) by {userName}.";
-                if (!string.IsNullOrEmpty(changedData))
-                    description += $" Changes: {changedData}";
-
-                // 🛡️ Skip if table or action missing (safety)
-                if (string.IsNullOrEmpty(entityName) || string.IsNullOrEmpty(action))
-                    continue;
-
-                var activity = new RecentActivity
-                {
-                    UserId = userId,
-                    UserName = userName,
-                    ActionType = action,
-                    TableName = entityName,
-                    RecordId = recordId,
-                    Description = description,
-                    ChangedData = changedData,
-                    Timestamp = DateTime.UtcNow
-                };
-
-                RecentActivities.Add(activity);
-            }
+        string changedData = null;
+        if (entry.State == EntityState.Modified)
+        {
+            var modifiedProps = entry.Properties
+                .Where(p => p.IsModified)
+                .Select(p => $"{p.Metadata.Name}: '{p.OriginalValue}' → '{p.CurrentValue}'");
+            changedData = string.Join("; ", modifiedProps);
         }
+
+        var description = $"{action} operation on {entityName} (ID {recordId}) by {userName}.";
+        if (!string.IsNullOrEmpty(changedData))
+            description += $" Changes: {changedData}";
+
+        var activity = new RecentActivity
+        {
+            UserId = userId,
+            UserName = userName,
+            ActionType = action,
+            TableName = entityName,
+            RecordId = recordId,
+            Description = description,
+            ChangedData = changedData,
+            Timestamp = DateTime.UtcNow
+        };
+
+        RecentActivities.Add(activity);
+    }
+}
+
 
         // ======= Model Configuration =======
         protected override void OnModelCreating(ModelBuilder modelBuilder)
