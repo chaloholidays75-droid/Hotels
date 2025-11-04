@@ -59,7 +59,7 @@ namespace AgencyManagementSystem.Controllers
             try
             {
                 var agencies = await _context.Agencies
-                    .Where(a => a.IsActive)
+                    
                     .Include(a => a.Country)
                     .Include(a => a.City)
                     .Include(a => a.Staff)
@@ -107,6 +107,7 @@ namespace AgencyManagementSystem.Controllers
                 PostCode = dto.PostCode,
                 Address = dto.Address,
                 Region = dto.Region,
+                Area = dto.Area,
                 Website = dto.Website,
                 PhoneNo = dto.PhoneNo,
                 EmailId = dto.EmailId,
@@ -188,6 +189,7 @@ namespace AgencyManagementSystem.Controllers
                 PostCode = agency.PostCode,
                 Address = agency.Address,
                 Region = agency.Region,
+                Area = agency.Area,
                 Website = agency.Website,
                 PhoneNo = agency.PhoneNo,
                 EmailId = agency.EmailId,
@@ -237,6 +239,7 @@ namespace AgencyManagementSystem.Controllers
             existingAgency.PostCode = agencyUpdate.PostCode;
             existingAgency.Address = agencyUpdate.Address;
             existingAgency.Region = agencyUpdate.Region;
+            existingAgency.Area = agencyUpdate.Area;
             existingAgency.Website = agencyUpdate.Website;
             existingAgency.PhoneNo = agencyUpdate.PhoneNo;
             existingAgency.EmailId = agencyUpdate.EmailId;

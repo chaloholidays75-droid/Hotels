@@ -22,6 +22,8 @@ namespace HotelAPI.Models.DTO
         public int? Adults { get; set; }
         public int? Children { get; set; }
         public List<int>? ChildrenAges { get; set; }
+        public string? Inclusion { get; set; }
+        public string? GuestName { get; set; }
     }
     
 }

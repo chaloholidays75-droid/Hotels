@@ -46,10 +46,10 @@ namespace HotelAPI.Controllers
                     RoomTypeId = br.RoomTypeId,
                     Adults = br.Adults ?? 0,
                     Children = br.Children ?? 0,
+                    Inclusion = br.Inclusion,
+                    GuestName = br.GuestName,
                     ChildrenAges = !string.IsNullOrEmpty(br.ChildrenAges)
-                        ? br.ChildrenAges.Split(',')
-                            .Select(s => int.TryParse(s, out var age) ? age : 0)
-                            .ToList()
+                        ? br.ChildrenAges.Split(',').Select(s => int.TryParse(s, out var age) ? age : 0).ToList()
                         : new List<int>()
                 }).ToList();
 
@@ -59,7 +59,7 @@ namespace HotelAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error while fetching booking rooms for BookingId {BookingId}", bookingId);
-                return StatusCode(500, "An error occurred while fetching booking rooms.");
+                return BuildErrorResponse(ex, $"Error while fetching booking rooms for BookingId {bookingId}");
             }
         }
 
@@ -88,7 +88,7 @@ namespace HotelAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error fetching room types for HotelId {HotelId}", hotelId);
-                return StatusCode(500, "An error occurred while fetching room types.");
+                return BuildErrorResponse(ex, $"Error fetching room types for HotelId {hotelId}");
             }
         }
 
@@ -115,6 +115,8 @@ namespace HotelAPI.Controllers
                     RoomTypeId = dto.RoomTypeId,
                     Adults = dto.Adults,
                     Children = dto.Children,
+                    Inclusion = dto.Inclusion ?? string.Empty,
+                    GuestName = dto.GuestName ?? string.Empty,
                     ChildrenAges = dto.ChildrenAges != null ? string.Join(',', dto.ChildrenAges) : null,
                     CreatedAt = DateTime.UtcNow
                 };
@@ -130,10 +132,10 @@ namespace HotelAPI.Controllers
                     RoomTypeId = room.RoomTypeId,
                     Adults = room.Adults ?? 0,
                     Children = room.Children ?? 0,
+                    Inclusion = room.Inclusion,
+                    GuestName = room.GuestName,
                     ChildrenAges = !string.IsNullOrEmpty(room.ChildrenAges)
-                        ? room.ChildrenAges.Split(',')
-                            .Select(s => int.TryParse(s, out var age) ? age : 0)
-                            .ToList()
+                        ? room.ChildrenAges.Split(',').Select(s => int.TryParse(s, out var age) ? age : 0).ToList()
                         : new List<int>()
                 };
 
@@ -142,7 +144,7 @@ namespace HotelAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error while creating booking room for BookingId {BookingId}", dto.Id);
-                return StatusCode(500, "An error occurred while creating the booking room.");
+                return BuildErrorResponse(ex, $"Error while creating booking room for BookingId {dto.Id}");
             }
         }
 
@@ -166,6 +168,8 @@ namespace HotelAPI.Controllers
                 room.RoomTypeId = dto.RoomTypeId;
                 room.Adults = dto.Adults;
                 room.Children = dto.Children;
+                room.Inclusion = dto.Inclusion ?? string.Empty;
+                room.GuestName = dto.GuestName ?? string.Empty;
                 room.ChildrenAges = dto.ChildrenAges != null ? string.Join(',', dto.ChildrenAges) : null;
                 room.UpdatedAt = DateTime.UtcNow;
 
@@ -179,10 +183,10 @@ namespace HotelAPI.Controllers
                     RoomTypeId = room.RoomTypeId,
                     Adults = room.Adults ?? 0,
                     Children = room.Children ?? 0,
+                    Inclusion = room.Inclusion,
+                    GuestName = room.GuestName,
                     ChildrenAges = !string.IsNullOrEmpty(room.ChildrenAges)
-                        ? room.ChildrenAges.Split(',')
-                            .Select(s => int.TryParse(s, out var age) ? age : 0)
-                            .ToList()
+                        ? room.ChildrenAges.Split(',').Select(s => int.TryParse(s, out var age) ? age : 0).ToList()
                         : new List<int>()
                 };
 
@@ -191,7 +195,7 @@ namespace HotelAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating booking room {RoomId}", id);
-                return StatusCode(500, "An error occurred while updating the booking room.");
+                return BuildErrorResponse(ex, $"Error updating booking room {id}");
             }
         }
 
@@ -236,7 +240,7 @@ namespace HotelAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error deleting booking room {RoomId}", id);
-                return StatusCode(500, "An error occurred while deleting the booking room.");
+                return BuildErrorResponse(ex, $"Error deleting booking room {id}");
             }
         }
 
@@ -260,7 +264,7 @@ namespace HotelAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error while creating room type for HotelId {HotelId}", roomType.HotelId);
-                return StatusCode(500, "An error occurred while creating the room type.");
+                return BuildErrorResponse(ex, $"Error while creating room type for HotelId {roomType.HotelId}");
             }
         }
 
@@ -289,7 +293,7 @@ namespace HotelAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating room type {RoomTypeId}", id);
-                return StatusCode(500, "An error occurred while updating the room type.");
+                return BuildErrorResponse(ex, $"Error updating room type {id}");
             }
         }
 
@@ -316,7 +320,7 @@ namespace HotelAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error deleting room type {RoomTypeId}", id);
-                return StatusCode(500, "An error occurred while deleting the room type.");
+                return BuildErrorResponse(ex, $"Error deleting room type {id}");
             }
         }
 
@@ -342,8 +346,23 @@ namespace HotelAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error fetching autocomplete room types for HotelId {HotelId}", hotelId);
-                return StatusCode(500, "An error occurred while fetching autocomplete room types.");
+                return BuildErrorResponse(ex, $"Error fetching autocomplete room types for HotelId {hotelId}");
             }
+        }
+
+        // ✅ Centralized enhanced error response builder
+        private ObjectResult BuildErrorResponse(Exception ex, string context)
+        {
+            var inner = ex.InnerException?.Message ?? "No inner exception";
+            _logger.LogError("🔍 {Context} | Error: {Error} | Inner: {Inner}", context, ex.Message, inner);
+
+            return StatusCode(500, new
+            {
+                message = "Internal server error",
+                error = ex.Message,
+                inner = inner,
+                stackTrace = ex.StackTrace
+            });
         }
     }
 }
