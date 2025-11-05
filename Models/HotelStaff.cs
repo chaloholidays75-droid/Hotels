@@ -1,6 +1,6 @@
 namespace HotelAPI.Models
 {
-    public class HotelStaff
+    public class HotelStaff : AuditableEntity
     {
     public int Id { get; set; }
     public int? HotelInfoId { get; set; }

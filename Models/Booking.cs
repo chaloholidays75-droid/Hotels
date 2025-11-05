@@ -14,6 +14,8 @@ namespace HotelAPI.Models
 
         // Foreign keys
         public int? AgencyId { get; set; }
+        public int? AgencyStaffId { get; set; }
+
         public int? SupplierId { get; set; }
         public int? HotelId { get; set; }
 
@@ -43,6 +45,7 @@ namespace HotelAPI.Models
 
         [ForeignKey(nameof(CommercialId))]
         public Commercial? Commercial { get; set; }
+        public virtual AgencyStaff? AgencyStaff { get; set; }
 
         // Navigation: BookingRooms
         public virtual ICollection<BookingRoom> BookingRooms { get; set; } = new List<BookingRoom>();

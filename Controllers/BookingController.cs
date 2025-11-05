@@ -44,6 +44,7 @@ namespace HotelAPI.Controllers
                         b.TicketNumber,
                         HotelName = b.Hotel != null ? b.Hotel.HotelName : null,
                         AgencyName = b.Agency != null ? b.Agency.AgencyName : null,
+                        AgencyStaffName = b.AgencyStaff != null ? b.AgencyStaff.Name : null,
                         SupplierName = b.Supplier != null ? b.Supplier.SupplierName : null,
                         b.CheckIn,
                         b.CheckOut,
@@ -181,6 +182,7 @@ namespace HotelAPI.Controllers
                 var booking = new Booking
                 {
                     AgencyId = dto.AgencyId,
+                    AgencyStaffId = dto.AgencyStaffId,
                     SupplierId = dto.SupplierId,
                     HotelId = dto.HotelId,
                     CheckIn = checkInUtc,
@@ -248,6 +250,7 @@ namespace HotelAPI.Controllers
                         b.NumberOfPeople,
                         HotelName = b.Hotel != null ? b.Hotel.HotelName : null,
                         AgencyName = b.Agency != null ? b.Agency.AgencyName : null,
+                        AgencyStaffName = b.AgencyStaff != null ? b.AgencyStaff.Name : null,
                         SupplierName = b.Supplier != null ? b.Supplier.SupplierName : null,
                         Rooms = b.BookingRooms.Select(r => new
                         {
@@ -302,6 +305,7 @@ namespace HotelAPI.Controllers
                 // ✅ Update main fields
                 existing.HotelId = dto.HotelId ?? existing.HotelId;
                 existing.AgencyId = dto.AgencyId ?? existing.AgencyId;
+                existing.AgencyStaffId = dto.AgencyStaffId ?? existing.AgencyStaffId;
                 existing.SupplierId = dto.SupplierId ?? existing.SupplierId;
                 existing.CheckIn = dto.CheckIn.HasValue ? EnsureUtc(dto.CheckIn.Value) : existing.CheckIn;
                 existing.CheckOut = dto.CheckOut.HasValue ? EnsureUtc(dto.CheckOut.Value) : existing.CheckOut;

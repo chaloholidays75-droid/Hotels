@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Npgsql;
 using HotelAPI.Models;
 using System.Security.Claims;
 
@@ -8,11 +9,21 @@ namespace HotelAPI.Data
     public class AppDbContext : DbContext
     {
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly int? _currentUserId;
 
         public AppDbContext(DbContextOptions<AppDbContext> options, IHttpContextAccessor httpContextAccessor)
             : base(options)
         {
             _httpContextAccessor = httpContextAccessor;
+
+            // ✅ Extract current user ID from HttpContext
+            var httpContext = _httpContextAccessor.HttpContext;
+            if (httpContext?.User?.Identity?.IsAuthenticated == true)
+            {
+                var idClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (int.TryParse(idClaim, out int parsedId))
+                    _currentUserId = parsedId;
+            }
         }
 
         // ======= DbSets =======
@@ -44,26 +55,40 @@ namespace HotelAPI.Data
 
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
-            ApplyAuditInformation();
-            LogRecentActivities();
+            var conn = (NpgsqlConnection)Database.GetDbConnection();
+            if (conn.State != System.Data.ConnectionState.Open)
+                await conn.OpenAsync(cancellationToken);
+
+            // ✅ Extract the REAL authenticated user ID from JWT claim
+            var httpContext = _httpContextAccessor?.HttpContext;
+            if (httpContext?.User?.Identity?.IsAuthenticated != true)
+                throw new InvalidOperationException("User must be authenticated to perform database changes.");
+
+            var idClaim = httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(idClaim) || !int.TryParse(idClaim, out int currentUserId))
+                throw new InvalidOperationException("Authenticated user ID claim is missing or invalid.");
+
+            // ✅ Execute SET LOCAL with the real user ID (no parameter placeholders)
+            using (var cmd = new NpgsqlCommand($"SET LOCAL app.current_user_id = {currentUserId};", conn))
+            {
+                await cmd.ExecuteNonQueryAsync(cancellationToken);
+            }
+
+            // ✅ Continue normal EF save process
             return await base.SaveChangesAsync(cancellationToken);
         }
+
 
         // ======= Audit Fields =======
         private void ApplyAuditInformation()
         {
-            int? userId = null;
+            int? userId = _currentUserId;
             string? userName = null;
 
             var httpContext = _httpContextAccessor?.HttpContext;
             if (httpContext?.User?.Identity?.IsAuthenticated == true)
             {
-                var idClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 var nameClaim = httpContext.User.FindFirst(ClaimTypes.Name)?.Value;
-
-                if (int.TryParse(idClaim, out int parsedId))
-                    userId = parsedId;
-
                 userName = nameClaim;
             }
 
@@ -85,69 +110,67 @@ namespace HotelAPI.Data
         }
 
         // ======= Recent Activity Logger =======
-private void LogRecentActivities()
-{
-    var httpContext = _httpContextAccessor?.HttpContext;
-    var userIdStr = httpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-    var userName = httpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? "System";
-    int.TryParse(userIdStr, out int userId);
-
-    // ✅ Skip internal or system tables
-    var skipList = new[] { nameof(RecentActivity), nameof(RefreshToken), nameof(RememberToken) };
-
-    var entries = ChangeTracker.Entries()
-        .Where(e =>
-            (e.State == EntityState.Added ||
-             e.State == EntityState.Modified ||
-             e.State == EntityState.Deleted)
-            && !skipList.Contains(e.Entity.GetType().Name)) // skip system tables
-        .ToList();
-
-    foreach (var entry in entries)
-    {
-        var entityName = entry.Entity.GetType().Name;
-        var action = entry.State switch
+        private void LogRecentActivities()
         {
-            EntityState.Added => "INSERT",
-            EntityState.Modified => "UPDATE",
-            EntityState.Deleted => "DELETE",
-            _ => "UNKNOWN"
-        };
+            var httpContext = _httpContextAccessor?.HttpContext;
+            var userIdStr = httpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userName = httpContext?.User?.FindFirst(ClaimTypes.Name)?.Value ?? "System";
+            int.TryParse(userIdStr, out int userId);
 
-        int recordId = 0;
-        var idProp = entry.Properties.FirstOrDefault(p => p.Metadata.Name.Equals("Id", StringComparison.OrdinalIgnoreCase));
-        if (idProp?.CurrentValue != null)
-            int.TryParse(idProp.CurrentValue.ToString(), out recordId);
+            // ✅ Skip internal/system tables
+            var skipList = new[] { nameof(RecentActivity), nameof(RefreshToken), nameof(RememberToken) };
 
-        string changedData = null;
-        if (entry.State == EntityState.Modified)
-        {
-            var modifiedProps = entry.Properties
-                .Where(p => p.IsModified)
-                .Select(p => $"{p.Metadata.Name}: '{p.OriginalValue}' → '{p.CurrentValue}'");
-            changedData = string.Join("; ", modifiedProps);
+            var entries = ChangeTracker.Entries()
+                .Where(e =>
+                    (e.State == EntityState.Added ||
+                     e.State == EntityState.Modified ||
+                     e.State == EntityState.Deleted)
+                    && !skipList.Contains(e.Entity.GetType().Name))
+                .ToList();
+
+            foreach (var entry in entries)
+            {
+                var entityName = entry.Entity.GetType().Name;
+                var action = entry.State switch
+                {
+                    EntityState.Added => "INSERT",
+                    EntityState.Modified => "UPDATE",
+                    EntityState.Deleted => "DELETE",
+                    _ => "UNKNOWN"
+                };
+
+                int recordId = 0;
+                var idProp = entry.Properties.FirstOrDefault(p => p.Metadata.Name.Equals("Id", StringComparison.OrdinalIgnoreCase));
+                if (idProp?.CurrentValue != null)
+                    int.TryParse(idProp.CurrentValue.ToString(), out recordId);
+
+                string changedData = null;
+                if (entry.State == EntityState.Modified)
+                {
+                    var modifiedProps = entry.Properties
+                        .Where(p => p.IsModified)
+                        .Select(p => $"{p.Metadata.Name}: '{p.OriginalValue}' → '{p.CurrentValue}'");
+                    changedData = string.Join("; ", modifiedProps);
+                }
+
+                var description = $"{action} operation on {entityName} (ID {recordId}) by {userName}.";
+                if (!string.IsNullOrEmpty(changedData))
+                    description += $" Changes: {changedData}";
+
+                var activity = new RecentActivity
+                {
+                    UserName = userName,
+                    ActionType = action,
+                    TableName = entityName,
+                    RecordId = recordId,
+                    Description = description,
+                    ChangedData = changedData,
+                    Timestamp = DateTime.UtcNow
+                };
+
+                RecentActivities.Add(activity);
+            }
         }
-
-        var description = $"{action} operation on {entityName} (ID {recordId}) by {userName}.";
-        if (!string.IsNullOrEmpty(changedData))
-            description += $" Changes: {changedData}";
-
-        var activity = new RecentActivity
-        {
-          
-            UserName = userName,
-            ActionType = action,
-            TableName = entityName,
-            RecordId = recordId,
-            Description = description,
-            ChangedData = changedData,
-            Timestamp = DateTime.UtcNow
-        };
-
-        RecentActivities.Add(activity);
-    }
-}
-
 
         // ======= Model Configuration =======
         protected override void OnModelCreating(ModelBuilder modelBuilder)
