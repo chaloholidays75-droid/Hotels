@@ -9,7 +9,7 @@ namespace HotelAPI.Models.DTO
         public int CityId { get; set; } 
         public string? Area { get; set; }
         public string HotelName { get; set; } = string.Empty;
-        public string HotelEmail { get; set; } = string.Empty;
+        public string? HotelEmail { get; set; } 
         public string HotelContactNumber { get; set; } = string.Empty;
         public string HotelChain { get; set; } = string.Empty;
         public string Address { get; set; } = string.Empty;
