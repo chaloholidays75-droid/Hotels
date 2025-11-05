@@ -75,25 +75,29 @@ namespace HotelAPI.Data
             return base.SaveChanges();
         }
 
-        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-        {
-            ApplyAuditInformation();
-            LogRecentActivities();
+public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+{
+    ApplyAuditInformation();
+    LogRecentActivities();
 
-            // ✅ Tell PostgreSQL which user is currently active
-            var conn = (NpgsqlConnection)Database.GetDbConnection();
-            if (conn.State != System.Data.ConnectionState.Open)
-                await conn.OpenAsync(cancellationToken);
+    // ✅ Ensure connection is open
+    var conn = (NpgsqlConnection)Database.GetDbConnection();
+    if (conn.State != System.Data.ConnectionState.Open)
+        await conn.OpenAsync(cancellationToken);
 
-            var currentUserId = _currentUserId ?? 0;
-            using (var cmd = new NpgsqlCommand("SET LOCAL app.current_user_id = @userId;", conn))
-            {
-                cmd.Parameters.AddWithValue("@userId", currentUserId);
-                await cmd.ExecuteNonQueryAsync(cancellationToken);
-            }
+    // ✅ Safely get current user ID (default 0)
+    var currentUserId = _currentUserId ?? 0;
 
-            return await base.SaveChangesAsync(cancellationToken);
-        }
+    // ✅ FIX: inline the integer directly — Postgres doesn't allow parameters in SET
+    using (var cmd = new NpgsqlCommand($"SET LOCAL app.current_user_id = {currentUserId};", conn))
+    {
+        await cmd.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    // ✅ Proceed with EF save
+    return await base.SaveChangesAsync(cancellationToken);
+}
+
 
         // ======= Audit Fields =======
         private void ApplyAuditInformation()
