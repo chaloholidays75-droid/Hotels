@@ -68,23 +68,19 @@ namespace HotelAPI.Controllers
         // ------------------------------------------------------------
         // ✅ LOGIN — Sets Secure Cookies + Returns JWT
         // ------------------------------------------------------------
-        [AllowAnonymous]
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
             try
             {
                 var auth = await _authService.LoginAsync(request);
-                var domain = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development"
-                    ? null // no domain for localhost
-                    : ".chaloholidayonline.com";
 
                 var cookieOptsShort = new CookieOptions
                 {
                     HttpOnly = true,
                     Secure = true,
                     SameSite = SameSiteMode.None,
-                    Domain = domain,
+                    
                     Expires = DateTime.UtcNow.AddMinutes(30)
                 };
                 var cookieOptsLong = new CookieOptions
@@ -92,7 +88,7 @@ namespace HotelAPI.Controllers
                     HttpOnly = true,
                     Secure = true,
                     SameSite = SameSiteMode.None,
-                    Domain = domain,
+                    
                     Expires = DateTime.UtcNow.AddDays(7)
                 };
 
