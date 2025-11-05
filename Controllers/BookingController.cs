@@ -76,7 +76,7 @@ namespace HotelAPI.Controllers
                     return StatusCode(500, new { message = "Failed to generate BookingReference." });
 
                 // 3) Generate TicketNumber
-                string ticketNumber = $"TICKET-{DateTime.UtcNow:yyyyMMddHHmm}-{bookingReference}";
+                string ticketNumber = $"Booking-{DateTime.UtcNow:yyyyMMddHHmm}-{bookingReference}";
 
                 // 4) Create Booking entity
                 var booking = new Booking
@@ -570,7 +570,7 @@ namespace HotelAPI.Controllers
                 if (string.IsNullOrWhiteSpace(booking.BookingReference))
                     return StatusCode(500, new { message = "Failed to generate BookingReference." });
 
-                booking.TicketNumber = $"TICKET-{DateTime.UtcNow:yyyyMMddHHmm}-{booking.BookingReference}";
+                booking.TicketNumber = $"BOOKING-{DateTime.UtcNow:yyyyMMddHHmm}-{booking.BookingReference}";
                 booking.Status = string.IsNullOrEmpty(booking.Status) ? "Confirmed" : booking.Status;
 
                 // 3) Link Commercial if exists
