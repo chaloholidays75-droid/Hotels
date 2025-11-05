@@ -9,6 +9,8 @@ namespace HotelAPI.Models
     {
         [Key]
         public int Id { get; set; }
+        public string? BookingType { get; set; }
+        public string? BookingReference { get; set; }
 
         public string? TicketNumber { get; set; }
 
