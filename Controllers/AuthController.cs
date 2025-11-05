@@ -68,6 +68,7 @@ namespace HotelAPI.Controllers
         // ------------------------------------------------------------
         // ✅ LOGIN — Sets Secure Cookies + Returns JWT
         // ------------------------------------------------------------
+        [AllowAnonymous]
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
