@@ -75,13 +75,16 @@ namespace HotelAPI.Controllers
             try
             {
                 var auth = await _authService.LoginAsync(request);
+                var domain = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development"
+                    ? null // no domain for localhost
+                    : ".chaloholidayonline.com";
 
                 var cookieOptsShort = new CookieOptions
                 {
                     HttpOnly = true,
                     Secure = true,
                     SameSite = SameSiteMode.None,
-                    Domain = ".chaloholidayonline.com",
+                    Domain = domain,
                     Expires = DateTime.UtcNow.AddMinutes(30)
                 };
                 var cookieOptsLong = new CookieOptions
@@ -89,7 +92,7 @@ namespace HotelAPI.Controllers
                     HttpOnly = true,
                     Secure = true,
                     SameSite = SameSiteMode.None,
-                    Domain = ".chaloholidayonline.com",
+                    Domain = domain,
                     Expires = DateTime.UtcNow.AddDays(7)
                 };
 
