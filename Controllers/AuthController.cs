@@ -300,5 +300,25 @@ namespace HotelAPI.Controllers
 
             return Ok(new { Id = userId, Email = email, FullName = fullName, Role = role });
         }
+        [AllowAnonymous]
+        [HttpPost("remember-login")]
+        public async Task<IActionResult> RememberLogin([FromBody] RememberLoginRequest request)
+        {
+            try
+            {
+                var result = await _authService.LoginWithRememberTokenAsync(request.Token);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return Unauthorized(new { message = ex.Message });
+            }
+        }
+
+        public class RememberLoginRequest
+        {
+            public string Token { get; set; } = null!;
+        }
+
     }
 }
