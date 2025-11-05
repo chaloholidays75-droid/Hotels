@@ -52,53 +52,31 @@ namespace HotelAPI.Data
             LogRecentActivities();
             return base.SaveChanges();
         }
-        public async Task<string> GenerateBookingReferenceAsync(string bookingType, CancellationToken cancellationToken = default)
-        {
-            // Defensive: ensure valid one-letter prefix
-            bookingType = string.IsNullOrWhiteSpace(bookingType) ? "H" : bookingType.Trim().Substring(0, 1).ToUpper();
 
-            var lastRef = await Bookings
-                .Where(b => b.BookingType == bookingType)
-                .OrderByDescending(b => b.Id)
-                .Select(b => b.BookingReference)
-                .FirstOrDefaultAsync(cancellationToken);
+public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+{
+    var conn = (NpgsqlConnection)Database.GetDbConnection();
+    if (conn.State != System.Data.ConnectionState.Open)
+        await conn.OpenAsync(cancellationToken);
 
-            int nextRefNumber = 10000;
+    // ✅ Extract the REAL authenticated user ID from JWT claim
+    var httpContext = _httpContextAccessor?.HttpContext;
+    if (httpContext?.User?.Identity?.IsAuthenticated != true)
+        throw new InvalidOperationException("User must be authenticated to perform database changes.");
 
-            if (!string.IsNullOrWhiteSpace(lastRef) && lastRef.Contains("-"))
-            {
-                var numPart = lastRef.Split('-').Last();
-                if (int.TryParse(numPart, out int parsed))
-                    nextRefNumber = parsed;
-            }
+    var idClaim = httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    if (string.IsNullOrEmpty(idClaim) || !int.TryParse(idClaim, out int currentUserId))
+        throw new InvalidOperationException("Authenticated user ID claim is missing or invalid.");
 
-            nextRefNumber++;
-            return $"{bookingType}-{nextRefNumber:D5}";
-        }
-        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-        {
-            var conn = (NpgsqlConnection)Database.GetDbConnection();
-            if (conn.State != System.Data.ConnectionState.Open)
-                await conn.OpenAsync(cancellationToken);
+    // ✅ Execute SET LOCAL with the real user ID (no parameter placeholders)
+    using (var cmd = new NpgsqlCommand($"SET LOCAL app.current_user_id = {currentUserId};", conn))
+    {
+        await cmd.ExecuteNonQueryAsync(cancellationToken);
+    }
 
-            // ✅ Extract the REAL authenticated user ID from JWT claim
-            var httpContext = _httpContextAccessor?.HttpContext;
-            if (httpContext?.User?.Identity?.IsAuthenticated != true)
-                throw new InvalidOperationException("User must be authenticated to perform database changes.");
-
-            var idClaim = httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(idClaim) || !int.TryParse(idClaim, out int currentUserId))
-                throw new InvalidOperationException("Authenticated user ID claim is missing or invalid.");
-
-            // ✅ Execute SET LOCAL with the real user ID (no parameter placeholders)
-            using (var cmd = new NpgsqlCommand($"SET LOCAL app.current_user_id = {currentUserId};", conn))
-            {
-                await cmd.ExecuteNonQueryAsync(cancellationToken);
-            }
-
-            // ✅ Continue normal EF save process
-            return await base.SaveChangesAsync(cancellationToken);
-        }
+    // ✅ Continue normal EF save process
+    return await base.SaveChangesAsync(cancellationToken);
+}
 
 
         // ======= Audit Fields =======
