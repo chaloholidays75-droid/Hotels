@@ -24,7 +24,6 @@ namespace HotelAPI.Data
                 if (int.TryParse(idClaim, out int parsedId))
                     _currentUserId = parsedId;
             }
-
         }
                 public async Task<string> GenerateBookingReferenceAsync(string bookingType, CancellationToken cancellationToken = default)
         {
@@ -49,7 +48,6 @@ namespace HotelAPI.Data
             nextRefNumber++;
             return $"{bookingType}-{nextRefNumber:D5}";
         }
-
         // ======= DbSets =======
         public DbSet<HotelInfo> HotelInfo { get; set; } = null!;
         public DbSet<HotelStaff> HotelStaff { get; set; } = null!;
@@ -77,31 +75,25 @@ namespace HotelAPI.Data
             return base.SaveChanges();
         }
 
-public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-{
-    var conn = (NpgsqlConnection)Database.GetDbConnection();
-    if (conn.State != System.Data.ConnectionState.Open)
-        await conn.OpenAsync(cancellationToken);
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            ApplyAuditInformation();
+            LogRecentActivities();
 
-    // ✅ Extract the REAL authenticated user ID from JWT claim
-    var httpContext = _httpContextAccessor?.HttpContext;
-    if (httpContext?.User?.Identity?.IsAuthenticated != true)
-        throw new InvalidOperationException("User must be authenticated to perform database changes.");
+            // ✅ Tell PostgreSQL which user is currently active
+            var conn = (NpgsqlConnection)Database.GetDbConnection();
+            if (conn.State != System.Data.ConnectionState.Open)
+                await conn.OpenAsync(cancellationToken);
 
-    var idClaim = httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-    if (string.IsNullOrEmpty(idClaim) || !int.TryParse(idClaim, out int currentUserId))
-        throw new InvalidOperationException("Authenticated user ID claim is missing or invalid.");
+            var currentUserId = _currentUserId ?? 0;
+            using (var cmd = new NpgsqlCommand("SET LOCAL app.current_user_id = @userId;", conn))
+            {
+                cmd.Parameters.AddWithValue("@userId", currentUserId);
+                await cmd.ExecuteNonQueryAsync(cancellationToken);
+            }
 
-    // ✅ Execute SET LOCAL with the real user ID (no parameter placeholders)
-    using (var cmd = new NpgsqlCommand($"SET LOCAL app.current_user_id = {currentUserId};", conn))
-    {
-        await cmd.ExecuteNonQueryAsync(cancellationToken);
-    }
-
-    // ✅ Continue normal EF save process
-    return await base.SaveChangesAsync(cancellationToken);
-}
-
+            return await base.SaveChangesAsync(cancellationToken);
+        }
 
         // ======= Audit Fields =======
         private void ApplyAuditInformation()
