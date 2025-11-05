@@ -24,6 +24,30 @@ namespace HotelAPI.Data
                 if (int.TryParse(idClaim, out int parsedId))
                     _currentUserId = parsedId;
             }
+
+        }
+                public async Task<string> GenerateBookingReferenceAsync(string bookingType, CancellationToken cancellationToken = default)
+        {
+            // Defensive: ensure valid one-letter prefix
+            bookingType = string.IsNullOrWhiteSpace(bookingType) ? "H" : bookingType.Trim().Substring(0, 1).ToUpper();
+
+            var lastRef = await Bookings
+                .Where(b => b.BookingType == bookingType)
+                .OrderByDescending(b => b.Id)
+                .Select(b => b.BookingReference)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            int nextRefNumber = 10000;
+
+            if (!string.IsNullOrWhiteSpace(lastRef) && lastRef.Contains("-"))
+            {
+                var numPart = lastRef.Split('-').Last();
+                if (int.TryParse(numPart, out int parsed))
+                    nextRefNumber = parsed;
+            }
+
+            nextRefNumber++;
+            return $"{bookingType}-{nextRefNumber:D5}";
         }
 
         // ======= DbSets =======
