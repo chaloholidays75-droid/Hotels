@@ -22,7 +22,7 @@ namespace HotelAPI.Models
         public string? ChildrenAges { get; set; }
 
         public string Inclusion { get; set; } = "Room Only"; // options: Room Only / With Breakfast
-        public string GuestName { get; set; }
+        public string? GuestName { get; set; }
     
         // Navigation properties
         public virtual Booking? Booking { get; set; }
