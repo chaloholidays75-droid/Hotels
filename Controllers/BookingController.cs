@@ -56,7 +56,6 @@ namespace HotelAPI.Controllers
             if (dto == null || dto.BookingRooms == null || !dto.BookingRooms.Any())
                 return BadRequest(new { message = "Booking and at least one room are required." });
 
-            // Enforce basic date rules here if you want (deadline < check-in)
             if (dto.Deadline.HasValue && dto.Deadline.Value >= dto.CheckIn)
                 return BadRequest(new { message = "Deadline must be before Check-In." });
 
@@ -67,22 +66,22 @@ namespace HotelAPI.Controllers
 
             try
             {
-                // 1) Determine booking type
+                // 1️⃣ Determine booking type
                 string bookingType = DetectBookingType(dto.HotelId, dto.SupplierId);
 
-                // 2) Generate BookingReference (required)
+                // 2️⃣ Generate Booking Reference
                 string bookingReference = await _context.GenerateBookingReferenceAsync(bookingType);
                 if (string.IsNullOrWhiteSpace(bookingReference))
                     return StatusCode(500, new { message = "Failed to generate BookingReference." });
 
-                // 3) Generate TicketNumber
+                // 3️⃣ Generate Ticket Number
                 string ticketNumber = $"Booking-{DateTime.UtcNow:yyyyMMddHHmm}-{bookingReference}";
 
-                // 4) Create Booking entity
+                // 4️⃣ Create main booking entity
                 var booking = new Booking
                 {
                     AgencyId = dto.AgencyId,
-                    AgencyStaffId = dto.AgencyStaffId, // may be null; frontend sends only id if no staff list
+                    AgencyStaffId = dto.AgencyStaffId,
                     SupplierId = dto.SupplierId,
                     HotelId = dto.HotelId,
                     CheckIn = checkInUtc,
@@ -99,9 +98,9 @@ namespace HotelAPI.Controllers
                 };
 
                 _context.Bookings.Add(booking);
-                await _context.SaveChangesAsync(); // booking.Id generated
+                await _context.SaveChangesAsync(); // Generate booking.Id
 
-                // 5) Insert Rooms (GuestName & Inclusion preserved)
+                // 5️⃣ Add related rooms
                 foreach (var roomDto in dto.BookingRooms)
                 {
                     var room = new BookingRoom
@@ -119,59 +118,59 @@ namespace HotelAPI.Controllers
                     };
                     _context.BookingRooms.Add(room);
                 }
+
                 await _context.SaveChangesAsync();
 
-                // 6) Auto totals
+                // 6️⃣ Update totals
                 booking.NumberOfPeople = await _context.BookingRooms
                     .Where(r => r.BookingId == booking.Id)
                     .SumAsync(r => (r.Adults ?? 0) + (r.Children ?? 0));
 
-                // Nights (>=0)
-                var nights = (int)Math.Max(0, (checkOutUtc.Date - checkInUtc.Date).TotalDays);
-
                 await _context.SaveChangesAsync();
                 await tx.CommitAsync();
 
-                // 7) Return full, clean object
-                var result = await _context.Bookings
+                // 7️⃣ Fetch booking (after commit) — in memory projection
+                var bookingLoaded = await _context.Bookings
                     .Include(b => b.BookingRooms).ThenInclude(br => br.RoomType)
                     .Include(b => b.Hotel).ThenInclude(h => h.City)
                     .Include(b => b.Hotel).ThenInclude(h => h.Country)
                     .Include(b => b.Agency)
                     .Include(b => b.Supplier)
-                    .Where(b => b.Id == booking.Id)
-                    .Select(b => new
+                    .FirstAsync(b => b.Id == booking.Id);
+
+                var result = new
+                {
+                    bookingLoaded.Id,
+                    bookingLoaded.BookingType,
+                    bookingLoaded.BookingReference,
+                    bookingLoaded.TicketNumber,
+                    bookingLoaded.Status,
+                    bookingLoaded.CheckIn,
+                    bookingLoaded.CheckOut,
+                    Nights = (bookingLoaded.CheckIn.HasValue && bookingLoaded.CheckOut.HasValue)
+                        ? (int)Math.Max(0, (bookingLoaded.CheckOut.Value.Date - bookingLoaded.CheckIn.Value.Date).TotalDays)
+                        : 0,
+                    bookingLoaded.NumberOfRooms,
+                    bookingLoaded.NumberOfPeople,
+                    HotelName = bookingLoaded.Hotel?.HotelName,
+                    CityName = bookingLoaded.Hotel?.City?.Name,
+                    CountryName = bookingLoaded.Hotel?.Country?.Name,
+                    AgencyName = bookingLoaded.Agency?.AgencyName,
+                    AgencyStaffName = bookingLoaded.AgencyStaff?.Name,
+                    SupplierName = bookingLoaded.Supplier?.SupplierName,
+                    Rooms = bookingLoaded.BookingRooms.Select(r => new
                     {
-                        b.Id,
-                        b.BookingType,
-                        b.BookingReference,
-                        b.TicketNumber,
-                        b.Status,
-                        b.CheckIn,
-                        b.CheckOut,
-                        Nights = nights,
-                        b.NumberOfRooms,
-                        b.NumberOfPeople,
-                        HotelName = b.Hotel != null ? b.Hotel.HotelName : null,
-                        CityName = b.Hotel != null ? b.Hotel.City!.Name : null,
-                        CountryName = b.Hotel != null ? b.Hotel.Country!.Name : null,
-                        AgencyName = b.Agency != null ? b.Agency.AgencyName : null,
-                        AgencyStaffName = b.AgencyStaff != null ? b.AgencyStaff.Name : null,
-                        SupplierName = b.Supplier != null ? b.Supplier.SupplierName : null,
-                        Rooms = b.BookingRooms.Select(r => new
-                        {
-                            r.Id,
-                            r.RoomTypeId,
-                            RoomTypeName = r.RoomType != null ? r.RoomType.Name : null,
-                            r.Adults,
-                            r.Children,
-                            r.Inclusion,
-                            r.LeadGuestName,
-                            GuestNames = r.GuestNames ?? new List<string>(),
-                            ChildrenAges = StringToAges(r.ChildrenAges)
-                        })
+                        r.Id,
+                        r.RoomTypeId,
+                        RoomTypeName = r.RoomType?.Name,
+                        r.Adults,
+                        r.Children,
+                        r.Inclusion,
+                        r.LeadGuestName,
+                        r.GuestNames,
+                        ChildrenAges = StringToAges(r.ChildrenAges)
                     })
-                    .FirstAsync();
+                };
 
                 return Ok(new { message = "Booking created successfully", booking = result });
             }
@@ -181,6 +180,7 @@ namespace HotelAPI.Controllers
                 return BuildErrorResponse(ex, "Failed to create booking");
             }
         }
+
 
         // ============================================================
         // GET: api/Booking
