@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Npgsql;
 using HotelAPI.Models;
 using System.Security.Claims;
+using System.Text.Json;
 
 namespace HotelAPI.Data
 {
@@ -229,6 +230,17 @@ public override async Task<int> SaveChangesAsync(CancellationToken cancellationT
                     .HasForeignKey(b => b.HotelId)
                     .OnDelete(DeleteBehavior.Restrict);
             });
+            var jsonOptions = new JsonSerializerOptions();
+
+            modelBuilder.Entity<BookingRoom>()
+                .Property(b => b.GuestNames)
+                .HasColumnType("jsonb")
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v ?? new List<string>(), jsonOptions),
+                    v => string.IsNullOrEmpty(v)
+                        ? new List<string>()
+                        : JsonSerializer.Deserialize<List<string>>(v, jsonOptions) ?? new List<string>()
+                );
         }
     }
 }
