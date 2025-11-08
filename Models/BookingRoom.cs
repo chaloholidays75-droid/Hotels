@@ -22,7 +22,12 @@ namespace HotelAPI.Models
         public string? ChildrenAges { get; set; }
 
         public string Inclusion { get; set; } = "Room Only"; // options: Room Only / With Breakfast
-        public string? GuestName { get; set; }
+        public string? LeadGuestName { get; set; }
+
+        [Column(TypeName = "jsonb")]
+        public List<string>? GuestNames { get; set; } = new();
+
+
     
         // Navigation properties
         public virtual Booking? Booking { get; set; }

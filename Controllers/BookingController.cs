@@ -111,7 +111,8 @@ namespace HotelAPI.Controllers
                         Adults = roomDto.Adults,
                         Children = roomDto.Children,
                         Inclusion = roomDto.Inclusion ?? string.Empty,
-                        GuestName = roomDto.GuestName ?? string.Empty,
+
+                    
                         ChildrenAges = AgesToString(roomDto.ChildrenAges),
                         CreatedAt = DateTime.UtcNow,
                         UpdatedAt = DateTime.UtcNow
@@ -165,7 +166,7 @@ namespace HotelAPI.Controllers
                             r.Adults,
                             r.Children,
                             r.Inclusion,
-                            r.GuestName,
+                            
                             ChildrenAges = StringToAges(r.ChildrenAges)
                         })
                     })
@@ -273,7 +274,8 @@ namespace HotelAPI.Controllers
                         r.Adults,
                         r.Children,
                         r.Inclusion,
-                        r.GuestName,
+                        r.LeadGuestName,
+                        GuestNames = r.GuestNames,
                         r.ChildrenAges
                     })
                 });
@@ -340,7 +342,7 @@ namespace HotelAPI.Controllers
                             Adults = roomDto.Adults,
                             Children = roomDto.Children,
                             Inclusion = roomDto.Inclusion ?? string.Empty,
-                            GuestName = roomDto.GuestName ?? string.Empty,
+                            
                             ChildrenAges = AgesToString(roomDto.ChildrenAges),
                             CreatedAt = DateTime.UtcNow,
                             UpdatedAt = DateTime.UtcNow
