@@ -47,7 +47,8 @@ namespace HotelAPI.Controllers
                     Adults = br.Adults ?? 0,
                     Children = br.Children ?? 0,
                     Inclusion = br.Inclusion,
-                    
+                    LeadGuestName = br.LeadGuestName,
+                    GuestNames = br.GuestNames,
                     ChildrenAges = !string.IsNullOrEmpty(br.ChildrenAges)
                         ? br.ChildrenAges.Split(',').Select(s => int.TryParse(s, out var age) ? age : 0).ToList()
                         : new List<int>()
@@ -116,7 +117,8 @@ namespace HotelAPI.Controllers
                     Adults = dto.Adults,
                     Children = dto.Children,
                     Inclusion = dto.Inclusion ?? string.Empty,
-
+                    LeadGuestName = dto.LeadGuestName,
+                    GuestNames = dto.GuestNames ?? new List<string>(),
                     ChildrenAges = dto.ChildrenAges != null ? string.Join(',', dto.ChildrenAges) : null,
                     CreatedAt = DateTime.UtcNow
                 };
@@ -133,7 +135,8 @@ namespace HotelAPI.Controllers
                     Adults = room.Adults ?? 0,
                     Children = room.Children ?? 0,
                     Inclusion = room.Inclusion,
-                    
+                    LeadGuestName = room.LeadGuestName,
+                    GuestNames = room.GuestNames,
                     ChildrenAges = !string.IsNullOrEmpty(room.ChildrenAges)
                         ? room.ChildrenAges.Split(',').Select(s => int.TryParse(s, out var age) ? age : 0).ToList()
                         : new List<int>()
@@ -169,7 +172,8 @@ namespace HotelAPI.Controllers
                 room.Adults = dto.Adults;
                 room.Children = dto.Children;
                 room.Inclusion = dto.Inclusion ?? string.Empty;
-                
+                room.LeadGuestName = dto.LeadGuestName;
+                room.GuestNames = dto.GuestNames;
                 room.ChildrenAges = dto.ChildrenAges != null ? string.Join(',', dto.ChildrenAges) : null;
                 room.UpdatedAt = DateTime.UtcNow;
 
@@ -184,7 +188,8 @@ namespace HotelAPI.Controllers
                     Adults = room.Adults ?? 0,
                     Children = room.Children ?? 0,
                     Inclusion = room.Inclusion,
-                    
+                    GuestNames = room.GuestNames,
+                    LeadGuestName = room.LeadGuestName, 
                     ChildrenAges = !string.IsNullOrEmpty(room.ChildrenAges)
                         ? room.ChildrenAges.Split(',').Select(s => int.TryParse(s, out var age) ? age : 0).ToList()
                         : new List<int>()
