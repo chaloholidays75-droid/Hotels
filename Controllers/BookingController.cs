@@ -185,63 +185,111 @@ namespace HotelAPI.Controllers
         // ============================================================
         // GET: api/Booking
         // ============================================================
-[HttpGet]
-public async Task<ActionResult<IEnumerable<object>>> GetAll()
-{
-    _logger.LogInformation("Fetching all bookings");
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<object>>> GetAll()
+        {
+            _logger.LogInformation("Fetching all bookings");
 
+            try
+            {
+                // Get all bookings
+                var bookings = await _context.Bookings
+                    .Include(b => b.Hotel)
+                    .Include(b => b.Agency)
+                    .Include(b => b.Supplier)
+                    .OrderByDescending(b => b.Id)
+                    .ToListAsync();
+
+                // Get all rooms
+                var allRooms = await _context.BookingRooms
+                    .Include(r => r.RoomType)
+                    .ToListAsync();
+
+                var result = bookings.Select(booking =>
+                {
+                    var rooms = allRooms.Where(r => r.BookingId == booking.Id).ToList();
+
+                    // If no rooms found but booking says there should be rooms, log it
+                    if (rooms.Count == 0 && booking.NumberOfRooms > 0)
+                    {
+                        _logger.LogWarning("Booking {BookingId} has NumberOfRooms={NumberOfRooms} but no rooms in database",
+                            booking.Id, booking.NumberOfRooms);
+                    }
+
+                    return new
+                    {
+                        booking.Id,
+                        booking.BookingType,
+                        booking.BookingReference,
+                        booking.TicketNumber,
+                        HotelName = booking.Hotel?.HotelName,
+                        AgencyName = booking.Agency?.AgencyName,
+                        AgencyStaffName = booking.AgencyStaff?.Name,
+                        SupplierName = booking.Supplier?.SupplierName,
+                        booking.CheckIn,
+                        booking.CheckOut,
+                        booking.NumberOfRooms,
+                        NumberOfPeople = rooms.Sum(r => (r.Adults ?? 0) + (r.Children ?? 0)),
+                        booking.Status,
+                        Nights = (booking.CheckIn.HasValue && booking.CheckOut.HasValue)
+                            ? (int)(booking.CheckOut.Value - booking.CheckIn.Value).TotalDays
+                            : 0,
+
+                        BookingRooms = rooms.Select(r => new
+                        {
+                            r.Id,
+                            r.RoomTypeId,
+                            RoomTypeName = r.RoomType?.Name ?? "Unknown",
+                            r.Adults,
+                            r.Children,
+                            r.Inclusion,
+                            r.LeadGuestName,
+                            GuestNames = r.GuestNames ?? new List<string>(),
+                            ChildrenAges = StringToAges(r.ChildrenAges)
+                        }).ToList()
+                    };
+                }).ToList();
+
+                _logger.LogInformation("Fetched {Count} bookings", result.Count);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BuildErrorResponse(ex, "Error fetching all bookings");
+            }
+        }
+[HttpGet("all-rooms")]
+public async Task<IActionResult> GetAllRooms()
+{
     try
     {
-        var bookings = await _context.Bookings
-            .Include(b => b.Hotel).ThenInclude(h => h.City)
-            .Include(b => b.Hotel).ThenInclude(h => h.Country)
-            .Include(b => b.Agency)
-            .Include(b => b.Supplier)
-            .Include(b => b.AgencyStaff)
-            .Include(b => b.BookingRooms).ThenInclude(r => r.RoomType)
-            .OrderByDescending(b => b.Id)
-            .Select(b => new
+        var allRooms = await _context.BookingRooms
+            .Include(r => r.Booking)
+            .Include(r => r.RoomType)
+            .Select(r => new
             {
-                b.Id,
-                b.BookingType,
-                b.BookingReference,
-                b.TicketNumber,
-                HotelName = b.Hotel != null ? b.Hotel.HotelName : null,
-                AgencyName = b.Agency != null ? b.Agency.AgencyName : null,
-                AgencyStaffName = b.AgencyStaff != null ? b.AgencyStaff.Name : null,
-                SupplierName = b.Supplier != null ? b.Supplier.SupplierName : null,
-                b.CheckIn,
-                b.CheckOut,
-                b.NumberOfRooms,
-                NumberOfPeople = b.BookingRooms.Sum(r => (r.Adults ?? 0) + (r.Children ?? 0)),
-                b.Status,
-
-                BookingRooms = b.BookingRooms.Select(r => new
-                {
-                    r.Id,
-                    r.RoomTypeId,
-                    RoomTypeName = r.RoomType != null ? r.RoomType.Name : null,
-                    r.Adults,
-                    r.Children,
-                    r.ChildrenAges,
-                    r.LeadGuestName,
-                    r.GuestNames,
-                    r.Inclusion
-                }).ToList()
+                r.Id,
+                r.BookingId,
+                BookingReference = r.Booking.BookingReference,
+                RoomTypeName = r.RoomType.Name,
+                r.Adults,
+                r.Children,
+                r.LeadGuestName
             })
-            .ToListAsync(); // ✅ IMPORTANT
+            .ToListAsync();
 
-        _logger.LogInformation("Fetched {Count} bookings successfully", bookings.Count);
-        return Ok(bookings);
+        return Ok(new
+        {
+            TotalRooms = allRooms.Count,
+            Rooms = allRooms
+        });
     }
     catch (Exception ex)
     {
-        return BuildErrorResponse(ex, "Error fetching all bookings");
+        return BuildErrorResponse(ex, "Error fetching all rooms");
     }
 }
-
-
-
+ 
         // ============================================================
         // GET: api/Booking/{id}
         // ============================================================

@@ -229,6 +229,10 @@ public override async Task<int> SaveChangesAsync(CancellationToken cancellationT
                     .WithMany()
                     .HasForeignKey(b => b.HotelId)
                     .OnDelete(DeleteBehavior.Restrict);
+                entity.HasMany(b => b.BookingRooms)
+                    .WithOne(r => r.Booking)
+                    .HasForeignKey(r => r.BookingId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
             var jsonOptions = new JsonSerializerOptions();
 
@@ -241,6 +245,8 @@ public override async Task<int> SaveChangesAsync(CancellationToken cancellationT
                         ? new List<string>()
                         : JsonSerializer.Deserialize<List<string>>(v, jsonOptions) ?? new List<string>()
                 );
+
+
         }
     }
 }

@@ -21,8 +21,8 @@ builder.Logging.AddDebug();
 builder.Services.AddControllers().AddJsonOptions(o =>
 {
     // ✅ 1. Prevent circular reference serialization errors
-    o.JsonSerializerOptions.ReferenceHandler =
-        System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+    // o.JsonSerializerOptions.ReferenceHandler =
+        // System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
 
     // ✅ 2. Match frontend JSON naming (guestName → GuestName)
     o.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
