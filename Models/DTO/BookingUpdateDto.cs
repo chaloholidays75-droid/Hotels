@@ -19,7 +19,7 @@ namespace HotelAPI.Models.DTO
 
     public class BookingRoomUpdateDto
     {
-        public int RoomTypeId { get; set; }
+        public int? RoomTypeId { get; set; }
         public int? Adults { get; set; }
         public int? Children { get; set; }
         public List<int>? ChildrenAges { get; set; }
