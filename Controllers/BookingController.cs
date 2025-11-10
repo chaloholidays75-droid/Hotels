@@ -185,46 +185,60 @@ namespace HotelAPI.Controllers
         // ============================================================
         // GET: api/Booking
         // ============================================================
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<object>>> GetAll()
-        {
-            _logger.LogInformation("Fetching all bookings");
+[HttpGet]
+public async Task<ActionResult<IEnumerable<object>>> GetAll()
+{
+    _logger.LogInformation("Fetching all bookings");
 
-            try
+    try
+    {
+        var bookings = await _context.Bookings
+            .Include(b => b.Hotel).ThenInclude(h => h.City)
+            .Include(b => b.Hotel).ThenInclude(h => h.Country)
+            .Include(b => b.Agency)
+            .Include(b => b.Supplier)
+            .Include(b => b.BookingRooms).ThenInclude(r => r.RoomType)
+            .OrderByDescending(b => b.Id)
+            .Select(b => new
             {
-                var bookings = await _context.Bookings
-                    .Include(b => b.Hotel).ThenInclude(h => h.City)
-                    .Include(b => b.Hotel).ThenInclude(h => h.Country)
-                    .Include(b => b.Agency)
-                    .Include(b => b.Supplier)
-                    .Include(b => b.BookingRooms)
-                    .OrderByDescending(b => b.Id)
-                    .Select(b => new
-                    {
-                        b.Id,
-                        b.BookingType,
-                        b.BookingReference,
-                        b.TicketNumber,
-                        HotelName = b.Hotel != null ? b.Hotel.HotelName : null,
-                        AgencyName = b.Agency != null ? b.Agency.AgencyName : null,
-                        AgencyStaffName = b.AgencyStaff != null ? b.AgencyStaff.Name : null,
-                        SupplierName = b.Supplier != null ? b.Supplier.SupplierName : null,
-                        b.CheckIn,
-                        b.CheckOut,
-                        b.NumberOfRooms,
-                        NumberOfPeople = b.BookingRooms.Sum(r => (r.Adults ?? 0) + (r.Children ?? 0)),
-                        b.Status
-                    })
-                    .ToListAsync();
+                b.Id,
+                b.BookingType,
+                b.BookingReference,
+                b.TicketNumber,
+                HotelName = b.Hotel != null ? b.Hotel.HotelName : null,
+                AgencyName = b.Agency != null ? b.Agency.AgencyName : null,
+                AgencyStaffName = b.AgencyStaff != null ? b.AgencyStaff.Name : null,
+                SupplierName = b.Supplier != null ? b.Supplier.SupplierName : null,
+                b.CheckIn,
+                b.CheckOut,
+                b.NumberOfRooms,
+                NumberOfPeople = b.BookingRooms.Sum(r => (r.Adults ?? 0) + (r.Children ?? 0)),
+                b.Status,
 
-                _logger.LogInformation("Fetched {Count} bookings successfully", bookings.Count);
-                return Ok(bookings);
-            }
-            catch (Exception ex)
-            {
-                return BuildErrorResponse(ex, "Error fetching all bookings");
-            }
-        }
+                BookingRooms = b.BookingRooms.Select(r => new
+                {
+                    r.Id,
+                    r.RoomTypeId,
+                    RoomTypeName = r.RoomType != null ? r.RoomType.Name : null,
+                    r.Adults,
+                    r.Children,
+                    r.ChildrenAges,
+                    r.LeadGuestName,
+                    r.GuestNames,
+                    r.Inclusion
+                }).ToList()
+            })
+            .ToListAsync();  // ✅ Required
+
+        _logger.LogInformation("Fetched {Count} bookings successfully", bookings.Count);
+        return Ok(bookings);
+    }
+    catch (Exception ex)
+    {
+        return BuildErrorResponse(ex, "Error fetching all bookings");
+    }
+}
+
 
         // ============================================================
         // GET: api/Booking/{id}
