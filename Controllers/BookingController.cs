@@ -197,6 +197,7 @@ public async Task<ActionResult<IEnumerable<object>>> GetAll()
             .Include(b => b.Hotel).ThenInclude(h => h.Country)
             .Include(b => b.Agency)
             .Include(b => b.Supplier)
+            .Include(b => b.AgencyStaff)
             .Include(b => b.BookingRooms).ThenInclude(r => r.RoomType)
             .OrderByDescending(b => b.Id)
             .Select(b => new
@@ -228,7 +229,7 @@ public async Task<ActionResult<IEnumerable<object>>> GetAll()
                     r.Inclusion
                 }).ToList()
             })
-            .ToListAsync();  // ✅ Required
+            .ToListAsync(); // ✅ IMPORTANT
 
         _logger.LogInformation("Fetched {Count} bookings successfully", bookings.Count);
         return Ok(bookings);
@@ -238,6 +239,7 @@ public async Task<ActionResult<IEnumerable<object>>> GetAll()
         return BuildErrorResponse(ex, "Error fetching all bookings");
     }
 }
+
 
 
         // ============================================================
