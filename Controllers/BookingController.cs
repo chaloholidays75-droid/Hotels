@@ -719,5 +719,20 @@ public async Task<IActionResult> GetAllRooms()
                 inner
             });
         }
+        [HttpPatch("Booking/{id}/status")]
+        public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateBookingStatusRequest req)
+        {
+            var booking = await _context.Bookings.FindAsync(id);
+            if (booking == null) return NotFound();
+
+            booking.Status = req.Status;
+            booking.AgentVoucher = req.AgentVoucher;
+            
+            booking.CancelReason = req.CancelReason;
+
+            await _context.SaveChangesAsync();
+            return Ok(booking);
+        }
+
     }
 }
