@@ -24,12 +24,11 @@ namespace HotelAPI.Controllers
 
         // ✅ 1️⃣ Get all recent activities (with pagination)
         [HttpGet]
-        public async Task<IActionResult> GetAll(int page = 1, int pageSize = 20)
+        public async Task<IActionResult> GetAll()
         {
             var activities = await _context.RecentActivities
                 .OrderByDescending(a => a.Timestamp)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
+
                 .ToListAsync();
 
             return Ok(activities);
