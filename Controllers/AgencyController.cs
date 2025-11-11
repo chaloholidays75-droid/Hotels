@@ -73,7 +73,7 @@ namespace AgencyManagementSystem.Controllers
             }
         }
             
-        
+
         [HttpGet("active")]
         public async Task<ActionResult<IEnumerable<Agency>>> GetActiveAgencies()
         {
