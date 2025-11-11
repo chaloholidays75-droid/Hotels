@@ -340,7 +340,7 @@ public async Task<ActionResult<object>> GetById(int id)
 
             booking.Status,
 
-            Rooms = booking.BookingRooms.Select(r => new
+            BookingRooms = booking.BookingRooms.Select(r => new
             {
                 r.Id,
                 r.RoomTypeId,
