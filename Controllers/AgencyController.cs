@@ -73,7 +73,7 @@ namespace AgencyManagementSystem.Controllers
             }
         }
             
-        [Authorize(Roles = "Admin,Employee")]
+        
         [HttpGet("active")]
         public async Task<ActionResult<IEnumerable<Agency>>> GetActiveAgencies()
         {

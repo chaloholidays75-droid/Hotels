@@ -45,6 +45,8 @@ namespace HotelAPI.Models
         public string? HotelConfirmationNumber { get; set; }
         public string? CancelReason { get; set; }
 
+        public string? CancellationPolicyJson { get; set; }
+
         // ✅ Link to Commercial
         public int? CommercialId { get; set; }
 
