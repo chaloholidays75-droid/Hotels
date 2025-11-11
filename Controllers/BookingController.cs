@@ -229,6 +229,7 @@ namespace HotelAPI.Controllers
                         booking.CheckIn,
                         booking.CheckOut,
                         booking.NumberOfRooms,
+                        booking.SpecialRequest,
                         NumberOfPeople = rooms.Sum(r => (r.Adults ?? 0) + (r.Children ?? 0)),
                         booking.Status,
                         Nights = (booking.CheckIn.HasValue && booking.CheckOut.HasValue)
