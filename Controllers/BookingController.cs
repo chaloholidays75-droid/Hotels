@@ -336,9 +336,9 @@ public async Task<ActionResult<object>> GetById(int id)
             booking.CheckIn,
             booking.CheckOut,
             booking.NumberOfRooms,
-
+            booking.SpecialRequest,
             NumberOfPeople = booking.BookingRooms.Sum(r => (r.Adults ?? 0) + (r.Children ?? 0)),
-
+            booking.Deadline,
             booking.Status,
 
             BookingRooms = booking.BookingRooms.Select(r => new
