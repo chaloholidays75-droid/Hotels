@@ -292,64 +292,74 @@ public async Task<IActionResult> GetAllRooms()
  
         // ============================================================
         // GET: api/Booking/{id}
-        // ============================================================
-        [HttpGet("{id}")]
-        public async Task<ActionResult<object>> GetById(int id)
+[HttpGet("{id}")]
+public async Task<ActionResult<object>> GetById(int id)
+{
+    _logger.LogInformation("Fetching booking by Id: {Id}", id);
+
+    try
+    {
+        var booking = await _context.Bookings
+            .Include(b => b.Hotel).ThenInclude(h => h.City)
+            .Include(b => b.Hotel).ThenInclude(h => h.Country)
+            .Include(b => b.Agency)
+            .Include(b => b.Supplier)
+            .Include(b => b.BookingRooms).ThenInclude(br => br.RoomType)
+            .FirstOrDefaultAsync(b => b.Id == id);
+
+        if (booking == null)
         {
-            _logger.LogInformation("Fetching booking by Id: {Id}", id);
-
-            try
-            {
-                var booking = await _context.Bookings
-                    .Include(b => b.Hotel).ThenInclude(h => h.City)
-                    .Include(b => b.Hotel).ThenInclude(h => h.Country)
-                    .Include(b => b.Agency)
-                    .Include(b => b.Supplier)
-                    .Include(b => b.BookingRooms).ThenInclude(br => br.RoomType)
-                    .FirstOrDefaultAsync(b => b.Id == id);
-
-                if (booking == null)
-                {
-                    _logger.LogWarning("Booking not found for Id {Id}", id);
-                    return NotFound();
-                }
-
-                return Ok(new
-                {
-                    booking.Id,
-                    booking.BookingType,
-                    booking.BookingReference,
-                    booking.TicketNumber,
-                    HotelName = booking.Hotel?.HotelName,
-                    CityName = booking.Hotel?.City?.Name,
-                    CountryName = booking.Hotel?.Country?.Name,
-                    AgencyName = booking.Agency?.AgencyName,
-                    AgencyStaffName = booking.AgencyStaff?.Name,
-                    SupplierName = booking.Supplier?.SupplierName,
-                    booking.CheckIn,
-                    booking.CheckOut,
-                    booking.NumberOfRooms,
-                    NumberOfPeople = booking.BookingRooms.Sum(r => (r.Adults ?? 0) + (r.Children ?? 0)),
-                    booking.Status,
-                    Rooms = booking.BookingRooms.Select(r => new
-                    {
-                        r.Id,
-                        r.RoomTypeId,
-                        RoomTypeName = r.RoomType?.Name,
-                        r.Adults,
-                        r.Children,
-                        r.Inclusion,
-                        r.LeadGuestName,
-                        GuestNames = r.GuestNames,
-                        r.ChildrenAges
-                    })
-                });
-            }
-            catch (Exception ex)
-            {
-                return BuildErrorResponse(ex, $"Error fetching booking with Id {id}");
-            }
+            return NotFound();
         }
+
+        return Ok(new
+        {
+            booking.Id,
+            booking.BookingType,
+            booking.BookingReference,
+            booking.TicketNumber,
+
+            // ✅ ADD THESE FOR FRONTEND
+            booking.HotelId,
+            booking.AgencyId,
+            booking.SupplierId,
+            booking.AgencyStaffId,
+
+            HotelName = booking.Hotel?.HotelName,
+            CityName = booking.Hotel?.City?.Name,
+            CountryName = booking.Hotel?.Country?.Name,
+            AgencyName = booking.Agency?.AgencyName,
+            AgencyStaffName = booking.AgencyStaff?.Name,
+            SupplierName = booking.Supplier?.SupplierName,
+
+            booking.CheckIn,
+            booking.CheckOut,
+            booking.NumberOfRooms,
+
+            NumberOfPeople = booking.BookingRooms.Sum(r => (r.Adults ?? 0) + (r.Children ?? 0)),
+
+            booking.Status,
+
+            Rooms = booking.BookingRooms.Select(r => new
+            {
+                r.Id,
+                r.RoomTypeId,
+                RoomTypeName = r.RoomType?.Name,
+                r.Adults,
+                r.Children,
+                r.Inclusion,
+                r.LeadGuestName,
+                GuestNames = r.GuestNames,
+                r.ChildrenAges
+            })
+        });
+    }
+    catch (Exception ex)
+    {
+        return BuildErrorResponse(ex, $"Error fetching booking with Id {id}");
+    }
+}
+
 
         // ============================================================
         // PUT: api/Booking/{id}
@@ -403,7 +413,7 @@ public async Task<IActionResult> GetAllRooms()
                         _context.BookingRooms.Add(new BookingRoom
                         {
                             BookingId = existing.Id,
-                            RoomTypeId = roomDto.RoomTypeId,
+                            RoomTypeId = roomDto.RoomTypeId ?? 0,   
                             Adults = roomDto.Adults,
                             Children = roomDto.Children,
                             Inclusion = roomDto.Inclusion ?? string.Empty,
