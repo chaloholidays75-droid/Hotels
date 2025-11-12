@@ -29,7 +29,7 @@ namespace HotelAPI.Controllers
             => dt.Kind == DateTimeKind.Utc ? dt : DateTime.SpecifyKind(dt, DateTimeKind.Utc);
 
         private static string? AgesToString(List<int>? ages)
-            => (ages == null || ages.Count == 0) ? null : string.Join(',', ages);
+            => (ages == null ) ? null : string.Join(',', ages);
 
         private static List<int> StringToAges(string? s)
         {
@@ -248,7 +248,8 @@ public async Task<IActionResult> Create([FromBody] BookingCreateDto dto)
                         r.Inclusion,
                         r.LeadGuestName,
                         GuestNames = r.GuestNames,
-                        r.ChildrenAges
+                        ChildrenAges = StringToAges(r.ChildrenAges)
+
                     })
                 });
             }
@@ -323,7 +324,7 @@ public async Task<IActionResult> Update(int id, [FromBody] BookingUpdateDto dto)
                 room.Children = roomDto.Children;
 
                 // ✅ Convert ages list correctly
-                room.ChildrenAges = AgesToString(roomDto.ChildrenAges);
+                room.ChildrenAges = AgesToString(roomDto.ChildrenAges ?? new List<int>());
 
                 room.Inclusion = roomDto.Inclusion ?? room.Inclusion;
                 room.LeadGuestName = roomDto.LeadGuestName;
