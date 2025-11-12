@@ -227,47 +227,86 @@ namespace HotelAPI.Controllers
         }
 
         // -------------------- READ BY BOOKING --------------------
-        [HttpGet("by-booking/{bookingId}")]
-        public async Task<IActionResult> GetByBooking(int bookingId)
+[HttpGet("by-booking/{bookingId}")]
+public async Task<IActionResult> GetByBooking(int bookingId)
+{
+    _logger.LogInformation("🔎 [GET] /api/commercial/by-booking/{BookingId} called", bookingId);
+
+    try
+    {
+        if (bookingId <= 0)
+            return BadRequest(new { error = "Invalid BookingId." });
+
+        // ✅ Get commercial + joined booking data
+        var data = await _context.Commercials
+            .Include(c => c.Booking)
+                .ThenInclude(b => b.Hotel)
+            .Include(c => c.Booking)
+                .ThenInclude(b => b.Agency)
+            .Include(c => c.Booking)
+                .ThenInclude(b => b.Supplier)
+            .Where(c => c.BookingId == bookingId)
+            .Select(c => new
+            {
+                // --- Booking Info ---
+                c.Id,
+                c.BookingId,
+                TicketNumber = c.Booking.TicketNumber,
+                BookingReference = c.Booking.BookingReference,
+                Status = c.Booking.Status,
+                CheckIn = c.Booking.CheckIn,
+                CheckOut = c.Booking.CheckOut,
+                HotelName = c.Booking.Hotel != null ? c.Booking.Hotel.HotelName : null,
+                AgencyName = c.Booking.Agency != null ? c.Booking.Agency.AgencyName : null,
+                SupplierName = c.Booking.Supplier != null ? c.Booking.Supplier.SupplierName : null,
+
+                // --- Commercial Info ---
+                c.BuyingCurrency,
+                c.BuyingAmount,
+                c.Commissionable,
+                c.CommissionType,
+                c.CommissionValue,
+                c.BuyingVatIncluded,
+                c.BuyingVatPercent,
+                c.AdditionalCostsJson,
+                c.SellingCurrency,
+                c.SellingPrice,
+                c.Incentive,
+                c.IncentiveType,
+                c.IncentiveValue,
+                c.SellingVatIncluded,
+                c.SellingVatPercent,
+                c.DiscountsJson,
+                c.ExchangeRate,
+                c.AutoCalculateRate,
+                c.GrossBuying,
+                c.NetBuying,
+                c.GrossSelling,
+                c.NetSelling,
+                c.Profit,
+                c.ProfitMarginPercent,
+                c.MarkupPercent,
+                c.CreatedAt,
+                c.UpdatedAt
+            })
+            .FirstOrDefaultAsync();
+
+        if (data == null)
         {
-            _logger.LogInformation("🔎 [GET] /api/commercial/by-booking/{BookingId} called", bookingId);
-
-            try
-            {
-                if (bookingId <= 0)
-                {
-                    _logger.LogWarning("❌ Invalid BookingId {BookingId}", bookingId);
-                    return BadRequest(new { error = "Invalid BookingId." });
-                }
-
-                var bookingExists = await _context.Bookings.AnyAsync(b => b.Id == bookingId);
-                if (!bookingExists)
-                {
-                    string message = $"Booking ID {bookingId} not found (404).";
-                    _logger.LogWarning(message);
-                    return NotFound(new { error = message });
-                }
-
-                var data = await _context.Commercials
-                    .Include(c => c.Booking)
-                    .FirstOrDefaultAsync(c => c.BookingId == bookingId);
-
-                if (data == null)
-                {
-                    string message = $"No commercial found for Booking ID {bookingId} (404).";
-                    _logger.LogWarning(message);
-                    return NotFound(new { error = message });
-                }
-
-                _logger.LogInformation("✅ Found Commercial ID {CommercialId} for BookingId {BookingId}.", data.Id, bookingId);
-                return Ok(data);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "💥 Exception while fetching commercial by bookingId {BookingId}", bookingId);
-                return StatusCode(500, new { error = $"Internal server error: {ex.Message}" });
-            }
+            string msg = $"No commercial found for Booking ID {bookingId}.";
+            _logger.LogWarning(msg);
+            return NotFound(new { error = msg });
         }
+
+        _logger.LogInformation("✅ Found Commercial for Booking {BookingId}.", bookingId);
+        return Ok(data);
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "💥 Error fetching commercial with joined booking data for BookingId {BookingId}", bookingId);
+        return StatusCode(500, new { error = ex.Message });
+    }
+}
 
         // -------------------- UPDATE --------------------
         [HttpPut("{id}")]
