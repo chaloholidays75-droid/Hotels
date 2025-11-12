@@ -278,11 +278,13 @@ public async Task<IActionResult> Update(int id, [FromBody] BookingUpdateDto dto)
         .FirstOrDefaultAsync(b => b.Id == id);
 
     if (existing == null)
-        return NotFound();
+        return NotFound(new { message = $"Booking {id} not found." });
 
     try
     {
-        // ✅ Update main booking fields
+        // ============================================================
+        // 🧱 Update main booking fields
+        // ============================================================
         existing.HotelId = dto.HotelId ?? existing.HotelId;
         existing.AgencyId = dto.AgencyId ?? existing.AgencyId;
         existing.AgencyStaffId = dto.AgencyStaffId ?? existing.AgencyStaffId;
@@ -294,14 +296,14 @@ public async Task<IActionResult> Update(int id, [FromBody] BookingUpdateDto dto)
         if (dto.CheckOut.HasValue)
             existing.CheckOut = EnsureUtc(dto.CheckOut.Value);
 
-        if (!string.IsNullOrEmpty(dto.SpecialRequest))
+        if (!string.IsNullOrWhiteSpace(dto.SpecialRequest))
             existing.SpecialRequest = dto.SpecialRequest;
 
-        if (!string.IsNullOrEmpty(dto.Status))
+        if (!string.IsNullOrWhiteSpace(dto.Status))
         {
             existing.Status = dto.Status;
             if (dto.Status == "Reconfirmed(Guaranteed)")
-                existing.Deadline = null; // clear deadline
+                existing.Deadline = null;
         }
 
         if (dto.Deadline.HasValue)
@@ -312,83 +314,104 @@ public async Task<IActionResult> Update(int id, [FromBody] BookingUpdateDto dto)
             existing.Deadline = EnsureUtc(dto.Deadline.Value);
         }
 
-        // ✅ Safe UPDATE logic for BookingRooms
+        // ============================================================
+        // 🏨 Handle BookingRooms (update / add / delete)
+        // ============================================================
         var existingRooms = existing.BookingRooms.ToList();
+        _logger.LogInformation("Existing rooms: {Count}", existingRooms.Count);
 
-        // ✅ Update or Create Rooms
         foreach (var roomDto in dto.BookingRooms)
         {
             if (roomDto.Id.HasValue)
             {
                 // ✅ UPDATE EXISTING ROOM
                 var room = existingRooms.FirstOrDefault(r => r.Id == roomDto.Id.Value);
-                if (room == null)
-                    continue;
+                if (room == null) continue;
 
                 room.RoomTypeId = roomDto.RoomTypeId ?? room.RoomTypeId;
                 room.Adults = roomDto.Adults;
                 room.Children = roomDto.Children;
-
-                // ✅ Convert ages list correctly
                 room.ChildrenAges = AgesToString(roomDto.ChildrenAges ?? new List<int>());
-
                 room.Inclusion = roomDto.Inclusion ?? room.Inclusion;
                 room.LeadGuestName = roomDto.LeadGuestName;
 
-                // ✅ GuestNames received as LIST → stored as LIST (no conversion)
+                // ✅ Store GuestNames as JSONB array (PostgreSQL)
                 room.GuestNames = roomDto.GuestNames ?? new List<string>();
 
                 room.UpdatedAt = DateTime.UtcNow;
+                _logger.LogInformation("Updated room Id {RoomId} with guests: {Guests}, ages: {Ages}", 
+                    room.Id, string.Join(",", room.GuestNames), room.ChildrenAges);
             }
             else
             {
                 // ✅ ADD NEW ROOM
-                _context.BookingRooms.Add(new BookingRoom
+                var newRoom = new BookingRoom
                 {
                     BookingId = existing.Id,
-                    RoomTypeId = roomDto.RoomTypeId.Value,
+                    RoomTypeId = roomDto.RoomTypeId ?? 0,
                     Adults = roomDto.Adults,
                     Children = roomDto.Children,
-
-                    // 🔧 Properly convert children ages and guest names
                     ChildrenAges = AgesToString(roomDto.ChildrenAges ?? new List<int>()),
-                    GuestNames = roomDto.GuestNames != null
-                        ? new List<string>(roomDto.GuestNames)
-                        : new List<string>(),
-
                     Inclusion = roomDto.Inclusion ?? "",
                     LeadGuestName = roomDto.LeadGuestName,
+                    GuestNames = roomDto.GuestNames ?? new List<string>(),
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
-                });
-            }
+                };
 
+                // ✅ Ensure GuestNames is valid JSON for jsonb column
+                newRoom.GuestNames = System.Text.Json.JsonSerializer
+                    .Deserialize<List<string>>(
+                        System.Text.Json.JsonSerializer.Serialize(newRoom.GuestNames)
+                    );
+
+                _context.BookingRooms.Add(newRoom);
+
+                _logger.LogInformation("Added new room with guests: {Guests}, ages: {Ages}", 
+                    string.Join(",", newRoom.GuestNames), newRoom.ChildrenAges);
+            }
         }
 
-        // ✅ DELETE rooms not in DTO
-        var dtoIds = dto.BookingRooms.Where(r => r.Id.HasValue).Select(r => r.Id.Value).ToList();
-        var toDelete = existingRooms.Where(r => !dtoIds.Contains(r.Id)).ToList();
+        // ============================================================
+        // 🗑️ Remove deleted rooms
+        // ============================================================
+        var dtoIds = dto.BookingRooms
+            .Where(r => r.Id.HasValue)
+            .Select(r => r.Id.Value)
+            .ToList();
+
+        var toDelete = existingRooms
+            .Where(r => !dtoIds.Contains(r.Id))
+            .ToList();
 
         if (toDelete.Any())
+        {
             _context.BookingRooms.RemoveRange(toDelete);
+            _logger.LogInformation("Deleted {Count} removed rooms", toDelete.Count);
+        }
 
-        // ✅ Update summary fields
+        // ============================================================
+        // 🧾 Update summary and save
+        // ============================================================
         existing.NumberOfRooms = dto.BookingRooms.Count;
         existing.NumberOfPeople = dto.BookingRooms.Sum(r => (r.Adults ?? 0) + (r.Children ?? 0));
-
         existing.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("Booking {Id} updated successfully", id);
-        return Ok(new { message = "Booking updated successfully." });
+        _logger.LogInformation("✅ Booking {Id} updated successfully", id);
+
+        return Ok(new
+        {
+            message = "Booking updated successfully",
+            bookingId = existing.Id
+        });
     }
     catch (Exception ex)
     {
         return BuildErrorResponse(ex, $"Failed to update booking Id {id}");
     }
 }
-
 
         // ============================================================
         // DELETE: api/Booking/{id}
