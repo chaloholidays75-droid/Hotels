@@ -20,6 +20,62 @@ namespace HotelAPI.Controllers
             _context = context;
             _logger = logger;
         }
+// ============================================================
+// 🧮 Helper: Full financial computation inside Controller
+// ============================================================
+        private void ComputeCommercialFields(Commercial c)
+        {
+            if (c == null) return;
+
+            // --- Buying side ---
+            decimal vatBuy = c.BuyingVatIncluded ? (c.BuyingAmount * c.BuyingVatPercent / 100) : 0;
+            c.NetBuying = c.BuyingVatIncluded
+                ? c.BuyingAmount / (1 + (c.BuyingVatPercent / 100))
+                : c.BuyingAmount;
+            c.GrossBuying = c.NetBuying + vatBuy;
+
+            // --- Selling side ---
+            decimal vatSell = c.SellingVatIncluded ? (c.SellingPrice * c.SellingVatPercent / 100) : 0;
+            c.NetSelling = c.SellingVatIncluded
+                ? c.SellingPrice / (1 + (c.SellingVatPercent / 100))
+                : c.SellingPrice;
+            c.GrossSelling = c.NetSelling + vatSell;
+
+            // --- Apply Commission (buying side) ---
+            decimal commissionAmt = 0;
+            if (c.Commissionable && c.CommissionValue.HasValue)
+            {
+                commissionAmt = c.CommissionType?.ToLower() == "percentage"
+                    ? c.NetBuying * (c.CommissionValue.Value / 100)
+                    : c.CommissionValue.Value;
+            }
+            c.NetBuying += commissionAmt; // commission adds to cost
+
+            // --- Apply Incentive (selling side) ---
+            decimal incentiveAmt = 0;
+            if (c.Incentive && c.IncentiveValue.HasValue)
+            {
+                incentiveAmt = c.IncentiveType?.ToLower() == "percentage"
+                    ? c.NetSelling * (c.IncentiveValue.Value / 100)
+                    : c.IncentiveValue.Value;
+            }
+            c.NetSelling += incentiveAmt; // incentive increases revenue
+
+            // --- Currency Conversion ---
+            decimal effectiveRate = c.ExchangeRate.HasValue && c.ExchangeRate > 0
+                ? c.ExchangeRate.Value
+                : 1;
+
+            decimal convertedBuying = c.NetBuying * effectiveRate;
+            decimal convertedSelling = c.NetSelling * effectiveRate;
+
+            // --- Profit & Ratios ---
+            c.Profit = convertedSelling - convertedBuying;
+            c.ProfitMarginPercent = convertedSelling != 0 ? (c.Profit / convertedSelling) * 100 : 0;
+            c.MarkupPercent = convertedBuying != 0 ? (c.Profit / convertedBuying) * 100 : 0;
+
+            c.UpdatedAt = DateTime.UtcNow;
+        }
 
         // -------------------- CREATE --------------------
         [HttpPost]
@@ -75,6 +131,7 @@ namespace HotelAPI.Controllers
                     UpdatedAt = DateTime.UtcNow
                 };
 
+                ComputeCommercialFields(entity);
                 _context.Commercials.Add(entity);
                 await _context.SaveChangesAsync();
 
@@ -247,6 +304,7 @@ namespace HotelAPI.Controllers
                 existing.MarkupPercent = dto.MarkupPercent ?? existing.MarkupPercent;
                 existing.UpdatedAt = DateTime.UtcNow;
 
+                ComputeCommercialFields(existing);
                 await _context.SaveChangesAsync();
 
                 if (existing.Booking != null)
@@ -350,46 +408,44 @@ namespace HotelAPI.Controllers
         }
 
         // -------------------- LINK COMMERCIAL TO BOOKING --------------------
-        [HttpPut("link/{bookingId}/{commercialId}")]
-        public async Task<IActionResult> LinkCommercialToBooking(int bookingId, int commercialId)
+[HttpPut("link/{bookingId}/{commercialId}")]
+public async Task<IActionResult> LinkCommercialToBooking(int bookingId, int commercialId)
+{
+    _logger.LogInformation("🔗 [PUT] /api/commercial/link/{BookingId}/{CommercialId} called", bookingId, commercialId);
+
+    try
+    {
+        var booking = await _context.Bookings.FirstOrDefaultAsync(b => b.Id == bookingId);
+        if (booking == null)
+            return NotFound(new { error = $"Booking with ID {bookingId} not found - cannot link." });
+
+        var commercial = await _context.Commercials.FirstOrDefaultAsync(c => c.Id == commercialId);
+        if (commercial == null)
+            return NotFound(new { error = $"Commercial with ID {commercialId} not found - cannot link." });
+
+        // 🔗 Link the two
+        booking.CommercialId = commercialId;
+        await _context.SaveChangesAsync();
+
+        // 🔁 Auto recompute commercial financials now that it's officially linked
+        ComputeCommercialFields(commercial);
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("✅ Linked Booking {BookingId} with Commercial {CommercialId}", bookingId, commercialId);
+        return Ok(new
         {
-            _logger.LogInformation("🔗 [PUT] /api/commercial/link/{BookingId}/{CommercialId} called", bookingId, commercialId);
+            message = $"Booking {bookingId} linked with Commercial {commercialId}.",
+            booking.Id,
+            booking.CommercialId
+        });
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "💥 Error linking Booking {BookingId} to Commercial {CommercialId}", bookingId, commercialId);
+        return StatusCode(500, new { error = $"Internal server error: {ex.Message}" });
+    }
+}
 
-            try
-            {
-                var booking = await _context.Bookings.FirstOrDefaultAsync(b => b.Id == bookingId);
-                if (booking == null)
-                {
-                    string message = $"Booking with ID {bookingId} not found (404) - cannot link.";
-                    _logger.LogWarning(message);
-                    return NotFound(new { error = message });
-                }
-
-                var commercial = await _context.Commercials.FirstOrDefaultAsync(c => c.Id == commercialId);
-                if (commercial == null)
-                {
-                    string message = $"Commercial with ID {commercialId} not found (404) - cannot link.";
-                    _logger.LogWarning(message);
-                    return NotFound(new { error = message });
-                }
-
-                booking.CommercialId = commercialId;
-                await _context.SaveChangesAsync();
-
-                _logger.LogInformation("✅ Linked Booking {BookingId} with Commercial {CommercialId}", bookingId, commercialId);
-                return Ok(new
-                {
-                    message = $"Booking {bookingId} linked with Commercial {commercialId}.",
-                    booking.Id,
-                    booking.CommercialId
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "💥 Error linking Booking {BookingId} to Commercial {CommercialId}", bookingId, commercialId);
-                return StatusCode(500, new { error = $"Internal server error: {ex.Message}" });
-            }
-        }
         [HttpGet("bookings-dropdown")]
 public async Task<IActionResult> GetBookingsDropdown()
 {
