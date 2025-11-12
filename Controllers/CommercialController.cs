@@ -237,7 +237,7 @@ public async Task<IActionResult> GetByBooking(int bookingId)
         if (bookingId <= 0)
             return BadRequest(new { error = "Invalid BookingId." });
 
-        // ✅ Get commercial + joined booking data
+        // ✅ Get commercial + joined booking data + rooms
         var data = await _context.Commercials
             .Include(c => c.Booking)
                 .ThenInclude(b => b.Hotel)
@@ -245,6 +245,8 @@ public async Task<IActionResult> GetByBooking(int bookingId)
                 .ThenInclude(b => b.Agency)
             .Include(c => c.Booking)
                 .ThenInclude(b => b.Supplier)
+            .Include(c => c.Booking)
+                .ThenInclude(b => b.BookingRooms) // 🔥 include rooms
             .Where(c => c.BookingId == bookingId)
             .Select(c => new
             {
@@ -259,6 +261,19 @@ public async Task<IActionResult> GetByBooking(int bookingId)
                 HotelName = c.Booking.Hotel != null ? c.Booking.Hotel.HotelName : null,
                 AgencyName = c.Booking.Agency != null ? c.Booking.Agency.AgencyName : null,
                 SupplierName = c.Booking.Supplier != null ? c.Booking.Supplier.SupplierName : null,
+
+                // --- Booking Rooms ---
+                BookingRooms = c.Booking.BookingRooms.Select(r => new
+                {
+                    r.Id,
+                    r.RoomType,
+                    r.LeadGuestName,
+                    r.Guests,
+                    r.Children,
+                    r.ChildrenAges,
+                    r.Inclusion,
+                    r.CancellationPolicy
+                }).ToList(),
 
                 // --- Commercial Info ---
                 c.BuyingCurrency,
@@ -307,6 +322,7 @@ public async Task<IActionResult> GetByBooking(int bookingId)
         return StatusCode(500, new { error = ex.Message });
     }
 }
+
 
         // -------------------- UPDATE --------------------
         [HttpPut("{id}")]
