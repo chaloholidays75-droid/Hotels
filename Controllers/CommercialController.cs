@@ -130,8 +130,7 @@ namespace HotelAPI.Controllers
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };
-
-                ComputeCommercialFields(entity);
+            
                 _context.Commercials.Add(entity);
                 await _context.SaveChangesAsync();
 
@@ -227,103 +226,47 @@ namespace HotelAPI.Controllers
         }
 
         // -------------------- READ BY BOOKING --------------------
-[HttpGet("by-booking/{bookingId}")]
-public async Task<IActionResult> GetByBooking(int bookingId)
-{
-    _logger.LogInformation("🔎 [GET] /api/commercial/by-booking/{BookingId} called", bookingId);
-
-    try
-    {
-        if (bookingId <= 0)
-            return BadRequest(new { error = "Invalid BookingId." });
-
-        // ✅ Get commercial + joined booking data + rooms
-        var data = await _context.Commercials
-            .Include(c => c.Booking)
-                .ThenInclude(b => b.Hotel)
-            .Include(c => c.Booking)
-                .ThenInclude(b => b.Agency)
-            .Include(c => c.Booking)
-                .ThenInclude(b => b.Supplier)
-            .Include(c => c.Booking)
-                .ThenInclude(b => b.BookingRooms) // 🔥 include rooms
-            .Where(c => c.BookingId == bookingId)
-            .Select(c => new
-            {
-                // --- Booking Info ---
-                c.Id,
-                c.BookingId,
-                TicketNumber = c.Booking.TicketNumber,
-                BookingReference = c.Booking.BookingReference,
-                Status = c.Booking.Status,
-                CheckIn = c.Booking.CheckIn,
-                CheckOut = c.Booking.CheckOut,
-                HotelName = c.Booking.Hotel != null ? c.Booking.Hotel.HotelName : null,
-                AgencyName = c.Booking.Agency != null ? c.Booking.Agency.AgencyName : null,
-                SupplierName = c.Booking.Supplier != null ? c.Booking.Supplier.SupplierName : null,
-                c.Booking.CancellationPolicyJson,
-
-                // --- Booking Rooms ---
-                BookingRooms = c.Booking.BookingRooms.Select(r => new
-                {
-                    r.Id,
-                    r.RoomType,
-                    r.LeadGuestName,
-                    r.GuestNames,
-                    r.Children,
-                    r.ChildrenAges,
-                    r.Inclusion,
-
-                }).ToList(),
-
-                // --- Commercial Info ---
-                c.BuyingCurrency,
-                c.BuyingAmount,
-                c.Commissionable,
-                c.CommissionType,
-                c.CommissionValue,
-                c.BuyingVatIncluded,
-                c.BuyingVatPercent,
-                c.AdditionalCostsJson,
-                c.SellingCurrency,
-                c.SellingPrice,
-                c.Incentive,
-                c.IncentiveType,
-                c.IncentiveValue,
-                c.SellingVatIncluded,
-                c.SellingVatPercent,
-                c.DiscountsJson,
-                c.ExchangeRate,
-                c.AutoCalculateRate,
-                c.GrossBuying,
-                c.NetBuying,
-                c.GrossSelling,
-                c.NetSelling,
-                c.Profit,
-                c.ProfitMarginPercent,
-                c.MarkupPercent,
-                c.CreatedAt,
-                c.UpdatedAt
-            })
-            .FirstOrDefaultAsync();
-
-        if (data == null)
+        [HttpGet("by-booking/{bookingId}")]
+        public async Task<IActionResult> GetByBooking(int bookingId)
         {
-            string msg = $"No commercial found for Booking ID {bookingId}.";
-            _logger.LogWarning(msg);
-            return NotFound(new { error = msg });
+            _logger.LogInformation("🔎 [GET] /api/commercial/by-booking/{BookingId} called", bookingId);
+
+            try
+            {
+                if (bookingId <= 0)
+                {
+                    _logger.LogWarning("❌ Invalid BookingId {BookingId}", bookingId);
+                    return BadRequest(new { error = "Invalid BookingId." });
+                }
+
+                var bookingExists = await _context.Bookings.AnyAsync(b => b.Id == bookingId);
+                if (!bookingExists)
+                {
+                    string message = $"Booking ID {bookingId} not found (404).";
+                    _logger.LogWarning(message);
+                    return NotFound(new { error = message });
+                }
+
+                var data = await _context.Commercials
+                    .Include(c => c.Booking)
+                    .FirstOrDefaultAsync(c => c.BookingId == bookingId);
+
+                if (data == null)
+                {
+                    string message = $"No commercial found for Booking ID {bookingId} (404).";
+                    _logger.LogWarning(message);
+                    return NotFound(new { error = message });
+                }
+
+                _logger.LogInformation("✅ Found Commercial ID {CommercialId} for BookingId {BookingId}.", data.Id, bookingId);
+                return Ok(data);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "💥 Exception while fetching commercial by bookingId {BookingId}", bookingId);
+                return StatusCode(500, new { error = $"Internal server error: {ex.Message}" });
+            }
         }
-
-        _logger.LogInformation("✅ Found Commercial for Booking {BookingId}.", bookingId);
-        return Ok(data);
-    }
-    catch (Exception ex)
-    {
-        _logger.LogError(ex, "💥 Error fetching commercial with joined booking data for BookingId {BookingId}", bookingId);
-        return StatusCode(500, new { error = ex.Message });
-    }
-}
-
 
         // -------------------- UPDATE --------------------
         [HttpPut("{id}")]
@@ -360,7 +303,6 @@ public async Task<IActionResult> GetByBooking(int bookingId)
                 existing.MarkupPercent = dto.MarkupPercent ?? existing.MarkupPercent;
                 existing.UpdatedAt = DateTime.UtcNow;
 
-                ComputeCommercialFields(existing);
                 await _context.SaveChangesAsync();
 
                 if (existing.Booking != null)
@@ -464,44 +406,46 @@ public async Task<IActionResult> GetByBooking(int bookingId)
         }
 
         // -------------------- LINK COMMERCIAL TO BOOKING --------------------
-[HttpPut("link/{bookingId}/{commercialId}")]
-public async Task<IActionResult> LinkCommercialToBooking(int bookingId, int commercialId)
-{
-    _logger.LogInformation("🔗 [PUT] /api/commercial/link/{BookingId}/{CommercialId} called", bookingId, commercialId);
-
-    try
-    {
-        var booking = await _context.Bookings.FirstOrDefaultAsync(b => b.Id == bookingId);
-        if (booking == null)
-            return NotFound(new { error = $"Booking with ID {bookingId} not found - cannot link." });
-
-        var commercial = await _context.Commercials.FirstOrDefaultAsync(c => c.Id == commercialId);
-        if (commercial == null)
-            return NotFound(new { error = $"Commercial with ID {commercialId} not found - cannot link." });
-
-        // 🔗 Link the two
-        booking.CommercialId = commercialId;
-        await _context.SaveChangesAsync();
-
-        // 🔁 Auto recompute commercial financials now that it's officially linked
-        ComputeCommercialFields(commercial);
-        await _context.SaveChangesAsync();
-
-        _logger.LogInformation("✅ Linked Booking {BookingId} with Commercial {CommercialId}", bookingId, commercialId);
-        return Ok(new
+        [HttpPut("link/{bookingId}/{commercialId}")]
+        public async Task<IActionResult> LinkCommercialToBooking(int bookingId, int commercialId)
         {
-            message = $"Booking {bookingId} linked with Commercial {commercialId}.",
-            booking.Id,
-            booking.CommercialId
-        });
-    }
-    catch (Exception ex)
-    {
-        _logger.LogError(ex, "💥 Error linking Booking {BookingId} to Commercial {CommercialId}", bookingId, commercialId);
-        return StatusCode(500, new { error = $"Internal server error: {ex.Message}" });
-    }
-}
+            _logger.LogInformation("🔗 [PUT] /api/commercial/link/{BookingId}/{CommercialId} called", bookingId, commercialId);
 
+            try
+            {
+                var booking = await _context.Bookings.FirstOrDefaultAsync(b => b.Id == bookingId);
+                if (booking == null)
+                {
+                    string message = $"Booking with ID {bookingId} not found (404) - cannot link.";
+                    _logger.LogWarning(message);
+                    return NotFound(new { error = message });
+                }
+
+                var commercial = await _context.Commercials.FirstOrDefaultAsync(c => c.Id == commercialId);
+                if (commercial == null)
+                {
+                    string message = $"Commercial with ID {commercialId} not found (404) - cannot link.";
+                    _logger.LogWarning(message);
+                    return NotFound(new { error = message });
+                }
+
+                booking.CommercialId = commercialId;
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("✅ Linked Booking {BookingId} with Commercial {CommercialId}", bookingId, commercialId);
+                return Ok(new
+                {
+                    message = $"Booking {bookingId} linked with Commercial {commercialId}.",
+                    booking.Id,
+                    booking.CommercialId
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "💥 Error linking Booking {BookingId} to Commercial {CommercialId}", bookingId, commercialId);
+                return StatusCode(500, new { error = $"Internal server error: {ex.Message}" });
+            }
+        }
         [HttpGet("bookings-dropdown")]
 public async Task<IActionResult> GetBookingsDropdown()
 {
