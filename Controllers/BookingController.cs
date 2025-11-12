@@ -349,14 +349,20 @@ public async Task<IActionResult> Update(int id, [FromBody] BookingUpdateDto dto)
                     RoomTypeId = roomDto.RoomTypeId.Value,
                     Adults = roomDto.Adults,
                     Children = roomDto.Children,
-                    ChildrenAges = AgesToString(roomDto.ChildrenAges),
+
+                    // 🔧 Properly convert children ages and guest names
+                    ChildrenAges = AgesToString(roomDto.ChildrenAges ?? new List<int>()),
+                    GuestNames = roomDto.GuestNames != null
+                        ? new List<string>(roomDto.GuestNames)
+                        : new List<string>(),
+
                     Inclusion = roomDto.Inclusion ?? "",
                     LeadGuestName = roomDto.LeadGuestName,
-                    GuestNames = roomDto.GuestNames ?? new List<string>(),
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 });
             }
+
         }
 
         // ✅ DELETE rooms not in DTO
