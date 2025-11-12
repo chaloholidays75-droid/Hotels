@@ -402,7 +402,264 @@ public async Task<IActionResult> Update(int id, [FromBody] BookingUpdateDto dto)
             {
                 return BuildErrorResponse(ex, $"Error deleting booking Id {id}");
             }
+        }         // ============================================================
+        // GET: api/Booking/search?query=...
+        // ============================================================
+        [HttpGet("search")]
+        public async Task<IActionResult> Search([FromQuery] string query)
+        {
+            _logger.LogInformation("Searching bookings. Query: {Query}", query);
+
+            if (string.IsNullOrWhiteSpace(query))
+                return BadRequest(new { message = "Search query cannot be empty." });
+
+            query = query.ToLower();
+
+            try
+            {
+                var results = await _context.Bookings
+                    .Include(b => b.Hotel)
+                    .Include(b => b.Agency)
+                    .Where(b =>
+                        (b.Hotel != null && b.Hotel.HotelName.ToLower().Contains(query)) ||
+                        (b.Agency != null && b.Agency.AgencyName.ToLower().Contains(query)) ||
+                        (!string.IsNullOrEmpty(b.TicketNumber) && b.TicketNumber.ToLower().Contains(query)) ||
+                        (!string.IsNullOrEmpty(b.BookingReference) && b.BookingReference.ToLower().Contains(query)))
+                    .OrderByDescending(b => b.Id)
+                    .Select(b => new
+                    {
+                        b.Id,
+                        b.BookingType,
+                        b.BookingReference,
+                        b.TicketNumber,
+                        HotelName = b.Hotel != null ? b.Hotel.HotelName : null,
+                        AgencyName = b.Agency != null ? b.Agency.AgencyName : null,
+                        b.Status,
+                        b.CheckIn,
+                        b.CheckOut
+                    })
+                    .ToListAsync();
+
+                _logger.LogInformation("Search found {Count} bookings", results.Count);
+                return Ok(results);
+            }
+            catch (Exception ex)
+            {
+                return BuildErrorResponse(ex, "Error searching bookings");
+            }
         }
+
+        // ============================================================
+        // GET: api/Booking/paged?page=1&pageSize=10
+        // ============================================================
+        [HttpGet("paged")]
+        public async Task<IActionResult> GetPaged([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        {
+            _logger.LogInformation("Getting paged bookings. Page: {Page}, Size: {Size}", page, pageSize);
+
+            if (page < 1 || pageSize < 1)
+                return BadRequest(new { message = "Invalid pagination parameters." });
+
+            try
+            {
+                var total = await _context.Bookings.CountAsync();
+
+                var results = await _context.Bookings
+                    .Include(b => b.Hotel)
+                    .Include(b => b.Agency)
+                    .OrderByDescending(b => b.Id)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .Select(b => new
+                    {
+                        b.Id,
+                        b.BookingType,
+                        b.BookingReference,
+                        b.TicketNumber,
+                        HotelName = b.Hotel != null ? b.Hotel.HotelName : null,
+                        AgencyName = b.Agency != null ? b.Agency.AgencyName : null,
+                        b.Status,
+                        b.CheckIn,
+                        b.CheckOut
+                    })
+                    .ToListAsync();
+
+                return Ok(new { total, page, pageSize, results });
+            }
+            catch (Exception ex)
+            {
+                return BuildErrorResponse(ex, "Error fetching paged bookings");
+            }
+        }
+
+        // ============================================================
+        // GET: api/Booking/hotels-autocomplete?query=...
+        // ============================================================
+        [HttpGet("hotels-autocomplete")]
+        public async Task<IActionResult> HotelsAutocomplete([FromQuery] string query)
+        {
+            _logger.LogInformation("Hotels autocomplete. Query: {Query}", query);
+
+            if (string.IsNullOrWhiteSpace(query))
+                return BadRequest(new { message = "Query cannot be empty." });
+
+            query = query.ToLower();
+
+            try
+            {
+                var hotels = await _context.HotelInfo
+                    .Include(h => h.City)
+                    .Include(h => h.Country)
+                    .Where(h =>
+                        h.HotelName.ToLower().Contains(query) ||
+                        h.Address.ToLower().Contains(query) ||
+                        (h.City != null && h.City.Name.ToLower().Contains(query)) ||
+                        (h.Country != null && h.Country.Name.ToLower().Contains(query))
+                    )
+                    .OrderBy(h => h.HotelName)
+                    .Select(h => new
+                    {
+                        h.Id,
+                        h.HotelName,
+                        CityName = h.City != null ? h.City.Name : null,
+                        CountryName = h.Country != null ? h.Country.Name : null
+                    })
+                    .Take(10)
+                    .ToListAsync();
+
+                _logger.LogInformation("Hotels autocomplete returned {Count} results", hotels.Count);
+                return Ok(hotels);
+            }
+            catch (Exception ex)
+            {
+                return BuildErrorResponse(ex, "Error in hotels autocomplete");
+            }
+        }
+
+        // ============================================================
+        // POST: api/Booking/create-with-commercial
+        // ============================================================
+        [HttpPost("create-with-commercial")]
+        public async Task<IActionResult> CreateWithCommercial([FromBody] BookingCommercialDTO dto)
+        {
+            _logger.LogInformation("Creating booking with commercial payload");
+
+            if (dto == null || dto.Booking == null)
+                return BadRequest(new { message = "Invalid request payload." });
+
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+
+            try
+            {
+                // 1) Save Commercial first (if provided)
+                Commercial? commercial = null;
+                if (dto.Commercial != null)
+                {
+                    _context.Commercials.Add(dto.Commercial);
+                    await _context.SaveChangesAsync();
+                    commercial = dto.Commercial;
+                }
+
+                // 2) Prepare Booking
+                var booking = dto.Booking;
+
+                if (booking.CheckIn.HasValue)
+                    booking.CheckIn = EnsureUtc(booking.CheckIn.Value);
+                if (booking.CheckOut.HasValue)
+                    booking.CheckOut = EnsureUtc(booking.CheckOut.Value);
+
+                // Auto booking type/ref/ticket here as well (mirrors Create)
+                string bType = DetectBookingType(booking.HotelId, booking.SupplierId);
+                booking.BookingType = bType;
+                booking.BookingReference = await _context.GenerateBookingReferenceAsync(bType);
+                if (string.IsNullOrWhiteSpace(booking.BookingReference))
+                    return StatusCode(500, new { message = "Failed to generate BookingReference." });
+
+                booking.TicketNumber = $"BOOKING-{DateTime.UtcNow:yyyyMMddHHmm}-{booking.BookingReference}";
+                booking.Status = string.IsNullOrEmpty(booking.Status) ? "Confirmed" : booking.Status;
+
+                // 3) Link Commercial if exists
+                if (commercial != null)
+                    booking.CommercialId = commercial.Id;
+
+                _context.Bookings.Add(booking);
+                await _context.SaveChangesAsync();
+
+                // 4) Commit
+                await transaction.CommitAsync();
+
+                _logger.LogInformation("Booking-with-commercial created. BookingId: {Id}, CommercialId: {CommercialId}", booking.Id, commercial?.Id);
+
+                return Ok(new
+                {
+                    message = "Booking and Commercial saved successfully.",
+                    bookingId = booking.Id,
+                    commercialId = commercial?.Id,
+                    ticket = booking.TicketNumber
+                });
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return BuildErrorResponse(ex, "Error saving booking with commercial data");
+            }
+        }
+
+        // ============================================================
+        // GET: api/Booking/pending-reconfirmations
+        // ============================================================
+        [HttpGet("pending-reconfirmations")]
+        public async Task<IActionResult> GetPendingReconfirmations()
+        {
+            _logger.LogInformation("Fetching pending reconfirmations");
+
+            try
+            {
+                var pending = await _context.Bookings
+                    .Include(b => b.Hotel)
+                    .Include(b => b.Agency)
+                    .Where(b => b.Status == "Confirmed" && b.Deadline.HasValue)
+                    .OrderBy(b => b.Deadline)
+                    .Select(b => new
+                    {
+                        b.Id,
+                        b.BookingType,
+                        b.BookingReference,
+                        b.TicketNumber,
+                        HotelName = b.Hotel != null ? b.Hotel.HotelName : null,
+                        AgencyName = b.Agency != null ? b.Agency.AgencyName : null,
+                        b.Deadline
+                    })
+                    .ToListAsync();
+
+                _logger.LogInformation("Pending reconfirmations count: {Count}", pending.Count);
+                return Ok(pending);
+            }
+            catch (Exception ex)
+            {
+                return BuildErrorResponse(ex, "Error fetching pending reconfirmations");
+            }
+        }
+
+ 
+
+        [HttpPatch("Booking/{id}/status")]
+        public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateBookingStatusRequest req)
+        {
+            var booking = await _context.Bookings.FindAsync(id);
+            if (booking == null) return NotFound();
+
+            booking.Status = req.Status;
+            booking.AgentVoucher = req.AgentVoucher;
+            
+            booking.CancelReason = req.CancelReason;
+
+            await _context.SaveChangesAsync();
+            return Ok(booking);
+        }
+
+
+
 
         // ============================================================
         // ERROR HANDLER (FULL DETAILED LOGGING)
@@ -441,5 +698,6 @@ public async Task<IActionResult> Update(int id, [FromBody] BookingUpdateDto dto)
                 stackTrace = stack
             });
         }
+        
     }
 }
