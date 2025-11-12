@@ -261,6 +261,7 @@ public async Task<IActionResult> GetByBooking(int bookingId)
                 HotelName = c.Booking.Hotel != null ? c.Booking.Hotel.HotelName : null,
                 AgencyName = c.Booking.Agency != null ? c.Booking.Agency.AgencyName : null,
                 SupplierName = c.Booking.Supplier != null ? c.Booking.Supplier.SupplierName : null,
+                c.Booking.CancellationPolicyJson,
 
                 // --- Booking Rooms ---
                 BookingRooms = c.Booking.BookingRooms.Select(r => new
@@ -268,11 +269,11 @@ public async Task<IActionResult> GetByBooking(int bookingId)
                     r.Id,
                     r.RoomType,
                     r.LeadGuestName,
-                    r.Guests,
+                    r.GuestNames,
                     r.Children,
                     r.ChildrenAges,
                     r.Inclusion,
-                    r.CancellationPolicy
+
                 }).ToList(),
 
                 // --- Commercial Info ---
