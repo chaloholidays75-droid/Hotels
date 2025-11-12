@@ -204,60 +204,66 @@ public async Task<IActionResult> Create([FromBody] BookingCreateDto dto)
         // ============================================================
         // GET: api/Booking/{id}  (Get Booking By Id)
         // ============================================================
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(int id)
+[HttpGet("{id}")]
+public async Task<IActionResult> GetById(int id)
+{
+    try
+    {
+        var booking = await _context.Bookings
+            .Include(b => b.Hotel).ThenInclude(h => h.City)
+            .Include(b => b.Hotel).ThenInclude(h => h.Country)
+            .Include(b => b.Agency)
+            .Include(b => b.Supplier)
+            .Include(b => b.BookingRooms).ThenInclude(br => br.RoomType)
+            .FirstOrDefaultAsync(b => b.Id == id);
+
+        if (booking == null)
+            return NotFound();
+
+        return Ok(new
         {
-            try
+            booking.Id,
+            booking.BookingType,
+            booking.BookingReference,
+            booking.TicketNumber,
+
+            // ✅ ADD THESE so frontend shows names
+            HotelName = booking.Hotel?.HotelName,
+            AgencyName = booking.Agency?.AgencyName,
+            SupplierName = booking.Supplier?.SupplierName,
+
+            booking.HotelId,
+            booking.AgencyId,
+            booking.SupplierId,
+            booking.AgencyStaffId,
+            booking.CheckIn,
+            booking.CheckOut,
+            booking.Deadline,
+            booking.SpecialRequest,
+            booking.Status,
+            booking.NumberOfRooms,
+            NumberOfPeople = booking.BookingRooms.Sum(r => (r.Adults ?? 0) + (r.Children ?? 0)),
+
+            // ✅ Consistent naming for frontend
+            BookingRooms = booking.BookingRooms.Select(r => new
             {
-                var booking = await _context.Bookings
-                    .Include(b => b.Hotel).ThenInclude(h => h.City)
-                    .Include(b => b.Hotel).ThenInclude(h => h.Country)
-                    .Include(b => b.Agency)
-                    .Include(b => b.Supplier)
-                    .Include(b => b.BookingRooms).ThenInclude(br => br.RoomType)
-                    .FirstOrDefaultAsync(b => b.Id == id);
-
-                if (booking == null)
-                    return NotFound();
-
-                return Ok(new
-                {
-                    booking.Id,
-                    booking.BookingType,
-                    booking.BookingReference,
-                    booking.TicketNumber,
-                    booking.HotelId,
-                    booking.AgencyId,
-                    booking.SupplierId,
-                    booking.AgencyStaffId,
-                    booking.CheckIn,
-                    booking.CheckOut,
-                    booking.Deadline,
-                    booking.SpecialRequest,
-                    booking.Status,
-                    booking.NumberOfRooms,
-                    NumberOfPeople = booking.BookingRooms.Sum(r => (r.Adults ?? 0) + (r.Children ?? 0)),
-
-                    Rooms = booking.BookingRooms.Select(r => new
-                    {
-                        r.Id,
-                        r.RoomTypeId,
-                        RoomTypeName = r.RoomType?.Name,
-                        r.Adults,
-                        r.Children,
-                        r.Inclusion,
-                        r.LeadGuestName,
-                        GuestNames = r.GuestNames,
-                        ChildrenAges = StringToAges(r.ChildrenAges)
-
-                    })
-                });
-            }
-            catch (Exception ex)
-            {
-                return BuildErrorResponse(ex, $"Error fetching booking Id {id}");
-            }
-        }
+                r.Id,
+                r.RoomTypeId,
+                RoomTypeName = r.RoomType?.Name,
+                r.Adults,
+                r.Children,
+                r.Inclusion,
+                r.LeadGuestName,
+                GuestNames = r.GuestNames ?? new List<string>(),
+                ChildrenAges = StringToAges(r.ChildrenAges)
+            })
+        });
+    }
+    catch (Exception ex)
+    {
+        return BuildErrorResponse(ex, $"Error fetching booking Id {id}");
+    }
+}
 
         // ============================================================
         // PUT: api/Booking/{id} (Update booking)
