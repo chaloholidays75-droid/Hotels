@@ -79,8 +79,8 @@ namespace HotelAPI.Controllers
                 {
                     HttpOnly = true,
                     Secure = true,
-                    SameSite = SameSiteMode.Lax,
-                    //  Domain = "backend.chaloholidayonline.com",
+                    SameSite = SameSiteMode.None,
+                     Domain = "backend.chaloholidayonline.com",
                      Path = "/",                    
                     Expires = DateTime.UtcNow.AddMinutes(30)
                 };
@@ -88,8 +88,8 @@ namespace HotelAPI.Controllers
                 {
                     HttpOnly = true,
                     Secure = true,
-                    SameSite = SameSiteMode.Lax,
-                    //  Domain = "backend.chaloholidayonline.com",
+                    SameSite = SameSiteMode.None,
+                     Domain = "backend.chaloholidayonline.com",
                      Path = "/",
                     Expires = DateTime.UtcNow.AddDays(7)
                 };
@@ -103,8 +103,8 @@ namespace HotelAPI.Controllers
                     {
                         HttpOnly = true,
                         Secure = true,
-                        SameSite = SameSiteMode.Lax,
-                        //  Domain = "backend.chaloholidayonline.com",
+                        SameSite = SameSiteMode.None,
+                         Domain = "backend.chaloholidayonline.com",
                          Path = "/",
                         Expires = DateTime.UtcNow.AddDays(30)
                     };
@@ -146,8 +146,8 @@ namespace HotelAPI.Controllers
                 {
                     HttpOnly = true,
                     Secure = true,
-                    SameSite = SameSiteMode.Lax,
-                    // Domain = "backend.chaloholidayonline.com",
+                    SameSite = SameSiteMode.None,
+                    Domain = "backend.chaloholidayonline.com",
                     Path = "/",
                     Expires = DateTime.UtcNow.AddMinutes(30)
                 };
@@ -155,8 +155,8 @@ namespace HotelAPI.Controllers
                 {
                     HttpOnly = true,
                     Secure = true,
-                    SameSite = SameSiteMode.Lax,
-                    // Domain = "backend.chaloholidayonline.com",
+                    SameSite = SameSiteMode.None,
+                    Domain = "backend.chaloholidayonline.com",
                     Path = "/",
                     Expires = DateTime.UtcNow.AddDays(7)
                 };
@@ -164,8 +164,8 @@ namespace HotelAPI.Controllers
                 {
                     HttpOnly = true,
                     Secure = true,
-                    SameSite = SameSiteMode.Lax,
-                    // Domain = "backend.chaloholidayonline.com",
+                    SameSite = SameSiteMode.None,
+                    Domain = "backend.chaloholidayonline.com",
                     Path = "/",
                     Expires = DateTime.UtcNow.AddDays(30)
                 };
@@ -208,8 +208,8 @@ namespace HotelAPI.Controllers
                 {
                     HttpOnly = true,
                     Secure = true,
-                    SameSite = SameSiteMode.Lax,
-                    // Domain = "backend.chaloholidayonline.com",
+                    SameSite = SameSiteMode.None,
+                    Domain = "backend.chaloholidayonline.com",
                     Path = "/",                   
                     Expires = DateTime.UtcNow.AddMinutes(30)
                 };
@@ -217,8 +217,8 @@ namespace HotelAPI.Controllers
                 {
                     HttpOnly = true,
                     Secure = true,
-                    SameSite = SameSiteMode.Lax,
-                    
+                    SameSite = SameSiteMode.None,
+                    Domain = "backend.chaloholidayonline.com",
                     Expires = DateTime.UtcNow.AddDays(7)
                 };
 
@@ -258,10 +258,10 @@ namespace HotelAPI.Controllers
                 var opts = new CookieOptions
                 {
                     Expires = DateTime.UnixEpoch,
-                    // Domain = "backend.chaloholidayonline.com",
+                    Domain = "backend.chaloholidayonline.com",
                     Path = "/",
                     Secure = true,
-                    SameSite = SameSiteMode.Lax,
+                    SameSite = SameSiteMode.None,
                     HttpOnly = true
                 };
                 Response.Cookies.Append("accessToken", "", opts);
