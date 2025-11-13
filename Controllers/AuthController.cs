@@ -88,7 +88,7 @@ namespace HotelAPI.Controllers
                     HttpOnly = true,
                     Secure = true,
                     SameSite = SameSiteMode.None,
-                    
+                     Domain = "backend.chaloholidayonline.com",
                     Expires = DateTime.UtcNow.AddDays(7)
                 };
 
@@ -102,7 +102,7 @@ namespace HotelAPI.Controllers
                         HttpOnly = true,
                         Secure = true,
                         SameSite = SameSiteMode.None,
-                        
+                         Domain = "backend.chaloholidayonline.com",
                         Expires = DateTime.UtcNow.AddDays(30)
                     };
                     Response.Cookies.Append("rememberToken", auth.RememberToken, rememberOpts);
@@ -144,7 +144,7 @@ namespace HotelAPI.Controllers
                     HttpOnly = true,
                     Secure = true,
                     SameSite = SameSiteMode.None,
-                   
+                    Domain = "backend.chaloholidayonline.com",
                     Expires = DateTime.UtcNow.AddMinutes(30)
                 };
                 var cookieOptsLong = new CookieOptions
@@ -152,7 +152,7 @@ namespace HotelAPI.Controllers
                     HttpOnly = true,
                     Secure = true,
                     SameSite = SameSiteMode.None,
-                   
+                    Domain = "backend.chaloholidayonline.com",
                     Expires = DateTime.UtcNow.AddDays(7)
                 };
                 var cookieOptsRemember = new CookieOptions

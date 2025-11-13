@@ -5,20 +5,20 @@ namespace HotelAPI.Models.DTO
         public int BookingId { get; set; }
 
         // Buying
-        public string BuyingCurrency { get; set; }
+        public string? BuyingCurrency { get; set; }
         public decimal BuyingAmount { get; set; }
         public bool Commissionable { get; set; }
-        public string CommissionType { get; set; }
+        public string? CommissionType { get; set; }
         public decimal? CommissionValue { get; set; }
         public bool BuyingVatIncluded { get; set; }
         public decimal BuyingVatPercent { get; set; }
         public string? AdditionalCostsJson { get; set; }
 
         // Selling
-        public string SellingCurrency { get; set; }
+        public string? SellingCurrency { get; set; }
         public decimal SellingPrice { get; set; }
         public bool Incentive { get; set; }
-        public string IncentiveType { get; set; }
+        public string? IncentiveType { get; set; }
         public decimal? IncentiveValue { get; set; }
         public bool SellingVatIncluded { get; set; }
         public decimal SellingVatPercent { get; set; }
