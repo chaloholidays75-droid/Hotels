@@ -209,7 +209,8 @@ namespace HotelAPI.Controllers
                     HttpOnly = true,
                     Secure = true,
                     SameSite = SameSiteMode.None,
-                   
+                    Domain = "backend.chaloholidayonline.com",
+                    Path = "/",                   
                     Expires = DateTime.UtcNow.AddMinutes(30)
                 };
                 var cookieOptsLong = new CookieOptions
@@ -257,7 +258,8 @@ namespace HotelAPI.Controllers
                 var opts = new CookieOptions
                 {
                     Expires = DateTime.UnixEpoch,
-                    Domain = ".chaloholidayonline.com",
+                    Domain = "backend.chaloholidayonline.com",
+                    Path = "/",
                     Secure = true,
                     SameSite = SameSiteMode.None,
                     HttpOnly = true
