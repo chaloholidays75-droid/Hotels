@@ -160,7 +160,7 @@ namespace HotelAPI.Controllers
                     HttpOnly = true,
                     Secure = true,
                     SameSite = SameSiteMode.None,
-                   
+                    Domain = "backend.chaloholidayonline.com",
                     Expires = DateTime.UtcNow.AddDays(30)
                 };
 
