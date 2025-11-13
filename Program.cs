@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using HotelAPI.Services;
+using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -60,8 +61,12 @@ builder.Services.AddCors(options =>
 // ------------------------------------------------------
 // 🗄 PostgreSQL
 // ------------------------------------------------------
+NpgsqlConnection.GlobalTypeMapper.EnableDynamicJson();
+
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
+);
+
 builder.Services.AddAutoMapper(typeof(Program));
 
 // ------------------------------------------------------
