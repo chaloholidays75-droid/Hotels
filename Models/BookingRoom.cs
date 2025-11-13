@@ -19,7 +19,9 @@ namespace HotelAPI.Models
   
         public int? Adults { get; set; }
         public int? Children { get; set; }
-        public string? ChildrenAges { get; set; }
+        [Column(TypeName = "jsonb")]
+        public List<string>? ChildrenAges { get; set; } = new();
+
 
         public string Inclusion { get; set; } = "Room Only"; // options: Room Only / With Breakfast
         public string? LeadGuestName { get; set; }

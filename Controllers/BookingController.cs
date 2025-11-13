@@ -111,7 +111,10 @@ public async Task<IActionResult> Create([FromBody] BookingCreateDto dto)
                 Inclusion = room.Inclusion ?? "",
                 LeadGuestName = room.LeadGuestName,
                 GuestNames = room.GuestNames ?? new List<string>(),
-                ChildrenAges = AgesToString(room.ChildrenAges),
+                ChildrenAges = (room.ChildrenAges ?? new List<int>())
+                   .Select(x => x.ToString())
+                   .ToList(),
+
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
@@ -188,7 +191,8 @@ public async Task<IActionResult> Create([FromBody] BookingCreateDto dto)
                             r.Children,
                             r.LeadGuestName,
                             GuestNames = r.GuestNames ?? new List<string>(),
-                            ChildrenAges = StringToAges(r.ChildrenAges)
+                            ChildrenAges = r.ChildrenAges ?? new List<string>()
+
                         })
                     };
                 });
@@ -255,7 +259,8 @@ public async Task<IActionResult> GetById(int id)
                 r.Inclusion,
                 r.LeadGuestName,
                 GuestNames = r.GuestNames ?? new List<string>(),
-                ChildrenAges = StringToAges(r.ChildrenAges)
+                ChildrenAges = r.ChildrenAges ?? new List<string>()
+
             })
         });
     }
@@ -331,7 +336,8 @@ public async Task<IActionResult> Update(int id, [FromBody] BookingUpdateDto dto)
                 room.RoomTypeId = roomDto.RoomTypeId ?? room.RoomTypeId;
                 room.Adults = roomDto.Adults;
                 room.Children = roomDto.Children;
-                room.ChildrenAges = AgesToString(roomDto.ChildrenAges ?? new List<int>());
+                room.ChildrenAges = (roomDto.ChildrenAges ?? new List<int>()).Select(x => x.ToString()).ToList();
+
                 room.Inclusion = roomDto.Inclusion ?? room.Inclusion;
                 room.LeadGuestName = roomDto.LeadGuestName;
 
@@ -351,7 +357,8 @@ public async Task<IActionResult> Update(int id, [FromBody] BookingUpdateDto dto)
                     RoomTypeId = roomDto.RoomTypeId ?? 0,
                     Adults = roomDto.Adults,
                     Children = roomDto.Children,
-                    ChildrenAges = AgesToString(roomDto.ChildrenAges ?? new List<int>()),
+                    ChildrenAges = (roomDto.ChildrenAges ?? new List<int>()).Select(x => x.ToString()).ToList(),
+
                     Inclusion = roomDto.Inclusion ?? "",
                     LeadGuestName = roomDto.LeadGuestName,
                     GuestNames = roomDto.GuestNames ?? new List<string>(),
