@@ -189,6 +189,7 @@ public async Task<IActionResult> Create([FromBody] BookingCreateDto dto)
                             r.RoomType?.Name,
                             r.Adults,
                             r.Children,
+                            r.Inclusion,
                             r.LeadGuestName,
                             GuestNames = r.GuestNames ?? new List<string>(),
                             ChildrenAges = r.ChildrenAges ?? new List<string>()
