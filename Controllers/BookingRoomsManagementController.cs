@@ -48,12 +48,11 @@ namespace HotelAPI.Controllers
                     Children = br.Children ?? 0,
                     Inclusion = br.Inclusion,
                     LeadGuestName = br.LeadGuestName,
-                    GuestNames = br.GuestNames,
-                    ChildrenAges = br.ChildrenAges?
+                    GuestNames = br.GuestNames ?? new List<string>(),
+                    // DB: List<string> → DTO: List<int>
+                    ChildrenAges = (br.ChildrenAges ?? new List<string>())
                         .Select(x => int.TryParse(x, out var age) ? age : 0)
-                        .ToList() 
-                        ?? new List<int>()
-
+                        .ToList()
                 }).ToList();
 
                 _logger.LogInformation("Successfully fetched {Count} rooms for BookingId {BookingId}", roomDtos.Count, bookingId);
@@ -97,6 +96,7 @@ namespace HotelAPI.Controllers
 
         // ------------------------
         // POST: api/booktype/room
+        // dto.Id == BookingId (your existing pattern)
         // ------------------------
         [HttpPost("room")]
         public async Task<ActionResult<BookingRoomDto>> CreateBookingRoom([FromBody] BookingRoomDto dto)
@@ -114,18 +114,19 @@ namespace HotelAPI.Controllers
 
                 var room = new BookingRoom
                 {
-                    BookingId = dto.Id,
+                    BookingId = dto.Id,                    // using dto.Id as BookingId
                     RoomTypeId = dto.RoomTypeId,
                     Adults = dto.Adults,
                     Children = dto.Children,
                     Inclusion = dto.Inclusion ?? string.Empty,
                     LeadGuestName = dto.LeadGuestName,
                     GuestNames = dto.GuestNames ?? new List<string>(),
-                ChildrenAges = dto.ChildrenAges?
-                    .Select(age => age.ToString())
-                    .ToList(),
-
-                    CreatedAt = DateTime.UtcNow
+                    // DTO: List<int> → DB: List<string>
+                    ChildrenAges = dto.ChildrenAges?
+                        .Select(age => age.ToString())
+                        .ToList(),
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 };
 
                 _context.BookingRooms.Add(room);
@@ -141,13 +142,11 @@ namespace HotelAPI.Controllers
                     Children = room.Children ?? 0,
                     Inclusion = room.Inclusion,
                     LeadGuestName = room.LeadGuestName,
-                    GuestNames = room.GuestNames,
-                    ChildrenAges = (room!.ChildrenAges ?? new List<string>())
+                    GuestNames = room.GuestNames ?? new List<string>(),
+                    // DB: List<string> → DTO: List<int>
+                    ChildrenAges = (room.ChildrenAges ?? new List<string>())
                         .Select(x => int.TryParse(x, out var age) ? age : 0)
                         .ToList()
-
-
-
                 };
 
                 return Ok(roomDto);
@@ -181,13 +180,11 @@ namespace HotelAPI.Controllers
                 room.Children = dto.Children;
                 room.Inclusion = dto.Inclusion ?? string.Empty;
                 room.LeadGuestName = dto.LeadGuestName;
-                room.GuestNames = dto.GuestNames;
+                room.GuestNames = dto.GuestNames ?? new List<string>();
+                // DTO: List<int> → DB: List<string>
                 room.ChildrenAges = dto.ChildrenAges?
                     .Select(age => age.ToString())
                     .ToList();
-
-
-
                 room.UpdatedAt = DateTime.UtcNow;
 
                 await _context.SaveChangesAsync();
@@ -201,13 +198,12 @@ namespace HotelAPI.Controllers
                     Adults = room.Adults ?? 0,
                     Children = room.Children ?? 0,
                     Inclusion = room.Inclusion,
-                    GuestNames = room.GuestNames,
-                    LeadGuestName = room.LeadGuestName, 
-                    ChildrenAges = room.ChildrenAges?
-                    .Select(x => int.TryParse(x, out var age) ? age : 0)
-                    .ToList()
-                    ?? new List<int>()
-
+                    GuestNames = room.GuestNames ?? new List<string>(),
+                    LeadGuestName = room.LeadGuestName,
+                    // DB: List<string> → DTO: List<int>
+                    ChildrenAges = (room.ChildrenAges ?? new List<string>())
+                        .Select(x => int.TryParse(x, out var age) ? age : 0)
+                        .ToList()
                 };
 
                 return Ok(roomDto);
